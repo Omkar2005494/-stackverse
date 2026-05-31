@@ -598,8 +598,13 @@ export default function MainMenu({ onStart, graphPreview }) {
       {loading && (
         <div
           style={{
-            position: "absolute",
-            inset: 0,
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            width: "100vw",
+            height: "100vh",
             background: "rgba(2,6,23,0.96)",
             display: "flex",
             flexDirection: "column",
