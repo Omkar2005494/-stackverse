@@ -20,8 +20,8 @@ export default function MainMenu({ onStart, graphPreview }) {
   return (
     <div
       style={{
-        position: "relative",
-        minHeight: "100vh",
+        position: "fixed",
+        inset: 0,
         background:
           "radial-gradient(circle at top, #164e63 0%, #0f172a 30%, #020617 70%, #000 100%)",
         overflowY: "auto",
@@ -34,9 +34,33 @@ export default function MainMenu({ onStart, graphPreview }) {
         zIndex: 999,
       }}
     >
-      {/* Safari fix: disabled large cyan blur orb */}
+      <div
+        style={{
+          position: "absolute",
+          width: "900px",
+          height: "900px",
+          borderRadius: "999px",
+          background: "rgba(34,211,238,0.12)",
+          filter: "blur(140px)",
+          animation: "floatOrb 8s ease-in-out infinite",
+          left: "-250px",
+          top: "-250px",
+        }}
+      />
 
-      {/* Safari fix: disabled large purple blur orb */}
+      <div
+        style={{
+          position: "absolute",
+          width: "700px",
+          height: "700px",
+          borderRadius: "999px",
+          background: "rgba(168,85,247,0.12)",
+          filter: "blur(120px)",
+          animation: "floatOrb 10s ease-in-out infinite reverse",
+          right: "-180px",
+          bottom: "-180px",
+        }}
+      />
 
       <div
         style={{
