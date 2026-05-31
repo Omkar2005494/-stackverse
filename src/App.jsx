@@ -17,19 +17,6 @@ import MainMenu from "./components/MainMenu";
 import GraphPreview from "./components/GraphPreview";
 import { missions } from "./game/missions";
 
-const pushSound = new Audio("/sounds/push.mp3");
-const popSound = new Audio("/sounds/pop.mp3");
-const warningSound = new Audio("/sounds/warning.mp3");
-const levelSound = new Audio("/sounds/levelup.mp3");
-const missionSound = new Audio("/sounds/mission.mp3");
-
-const playSound = (sound) => {
-  sound.currentTime = 0;
-
-  sound.play().catch((err) => {
-    console.log("Sound blocked:", err);
-  });
-};
 
 export default function App() {
   const [stack, setStack] = useState([1]);
@@ -109,7 +96,6 @@ export default function App() {
       if (missionIndex < missions.length - 1) {
         setMissionIndex(missionIndex + 1);
         setXp((prev) => prev + 50);
-        playSound(missionSound);
       }
     }, 1500);
 
@@ -122,7 +108,6 @@ export default function App() {
     if (calculatedLevel > level) {
       setLevel(calculatedLevel);
       setShowLevelUp(true);
-      playSound(levelSound);
 
       setTimeout(() => {
         setShowLevelUp(false);
@@ -231,7 +216,6 @@ export default function App() {
     if (stack.length >= 5) {
       setWarning("STACK OVERFLOW!");
       setShake(true);
-      playSound(warningSound);
 
       setTimeout(() => {
         setWarning("");
@@ -249,7 +233,6 @@ export default function App() {
     const newXp = xp + gainedXp;
     setXp(newXp);
     setCombo(combo + 1);
-    playSound(pushSound);
     setShowXP(true);
     setShowShockwave(true);
 
@@ -263,7 +246,6 @@ export default function App() {
     if (stack.length <= 0) {
       setWarning("STACK UNDERFLOW!");
       setShake(true);
-      playSound(warningSound);
 
       setTimeout(() => {
         setWarning("");
@@ -275,14 +257,12 @@ export default function App() {
 
     setCombo(0);
     setStack(stack.slice(0, -1));
-    playSound(popSound);
   };
 
   const enqueue = () => {
     if (queue.length >= 5) {
       setWarning("QUEUE OVERFLOW!");
       setShake(true);
-      playSound(warningSound);
 
       setTimeout(() => {
         setWarning("");
@@ -314,7 +294,6 @@ export default function App() {
     if (queue.length <= 0) {
       setWarning("QUEUE UNDERFLOW!");
       setShake(true);
-      playSound(warningSound);
 
       setTimeout(() => {
         setWarning("");
@@ -326,7 +305,6 @@ export default function App() {
 
     setQueue(queue.slice(1));
     setCombo(0);
-    playSound(popSound);
   };
 
   const insertNode = () => {
