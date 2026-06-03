@@ -1,16 +1,26 @@
-# React + Vite
+StackVerse
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+StackVerse is a 3D gamified Data Structures & Algorithms learning platform that transforms core DSA concepts into interactive virtual worlds. Users explore Stack, Queue, Tree, Heap, and Graph realms while performing real-time operations, visualizing traversals, earning XP, unlocking achievements, and tracking progress through an engaging game-like experience.
 
-Currently, two official plugins are available:
+Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+* Interactive Stack, Queue, Tree, Heap, and Graph worlds
+* Real-time 3D data structure visualizations
+* BFS, DFS, Inorder, Preorder, and Postorder traversal animations
+* Graph shortest path visualization
+* Firebase Authentication (Login & Signup)
+* XP, Levels, and Achievement System
+* Responsive UI with immersive gameplay mechanics
 
-## React Compiler
+Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+* React.js
+* Three.js
+* React Three Fiber
+* Firebase Authentication
+* Vite
+* JavaScript
 
-## Expanding the ESLint configuration
+Live Demo
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+https://stackverse-nu.vercel.app
