@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { signOut } from "firebase/auth";
+import { auth } from "./firebase/firebase";
 
 import StackWorld from "./worlds/StackWorld";
 import QueueWorld from "./worlds/QueueWorld";
@@ -14,20 +16,85 @@ import ComboPopup from "./components/ComboPopup";
 import FloatingXP from "./components/FloatingXP";
 import Shockwave from "./components/Shockwave";
 import MainMenu from "./components/MainMenu";
+import Login from "./components/Login";
 import GraphPreview from "./components/GraphPreview";
 import { missions } from "./game/missions";
+import { useAuth } from "./hooks/useAuth";
+import { loadProgress, saveProgress } from "./hooks/useProgress";
+import { achievementsConfig } from "./data/achievements";
+import { useWorldNavigation } from "./hooks/useWorldNavigation";
+import { useStackLogic } from "./hooks/useStackLogic";
+import { useQueueLogic } from "./hooks/useQueueLogic";
+import { useTreeLogic } from "./hooks/useTreeLogic";
+
+import { useHeapLogic } from "./hooks/useHeapLogic";
+import { useGraphLogic } from "./hooks/useGraphLogic";
 
 
 export default function App() {
-  const [stack, setStack] = useState([1]);
-  const [queue, setQueue] = useState([1, 2, 3]);
-  const [heap, setHeap] = useState([10, 20, 30, 40, 50]);
-  const [heapInput, setHeapInput] = useState("");
-  const [heapInsertCount, setHeapInsertCount] = useState(0);
-  const [heapExtractCount, setHeapExtractCount] = useState(0);
-  const [heapType, setHeapType] = useState("min");
-  const [swappedNodes, setSwappedNodes] = useState([]);
-  const [currentWorld, setCurrentWorld] = useState("stack");
+  const { stack, setStack } = useStackLogic();
+  const { queue, setQueue } = useQueueLogic();
+  const {
+    treeNodes,
+    setTreeNodes,
+    nodeInput,
+    setNodeInput,
+    searchInput,
+    setSearchInput,
+    highlightedNode,
+    setHighlightedNode,
+    traversalResult,
+    setTraversalResult,
+    resetTree,
+    insertNode,
+    searchNode,
+    deleteNode,
+    startBFS,
+    startDFS,
+    startInorder,
+    startPreorder,
+    startPostorder,
+  } = useTreeLogic();
+  const {
+    graphNodes,
+    setGraphNodes,
+    graphEdges,
+    setGraphEdges,
+    vertexInput,
+    setVertexInput,
+    edgeInput,
+    setEdgeInput,
+    startVertex,
+    setStartVertex,
+    endVertex,
+    setEndVertex,
+    shortestPath,
+    setShortestPath,
+    addVertex,
+    deleteVertex,
+    addEdge,
+    deleteEdge,
+    resetGraph,
+    startGraphBFS,
+    startGraphDFS,
+    findShortestPath,
+  } = useGraphLogic();
+  const {
+    heap,
+    setHeap,
+    heapInput,
+    setHeapInput,
+    heapInsertCount,
+    setHeapInsertCount,
+    heapExtractCount,
+    setHeapExtractCount,
+    heapType,
+    setHeapType,
+    swappedNodes,
+    setSwappedNodes,
+    heapSortResult,
+    setHeapSortResult,
+  } = useHeapLogic();
   const [xp, setXp] = useState(0);
   const [level, setLevel] = useState(1);
   const [showLevelUp, setShowLevelUp] = useState(false);
@@ -38,17 +105,6 @@ export default function App() {
   const [showShockwave, setShowShockwave] = useState(false);
   const [missionIndex, setMissionIndex] = useState(0);
   const [gameStarted, setGameStarted] = useState(false);
-  const [treeNodes, setTreeNodes] = useState([]);
-  const [graphNodes, setGraphNodes] = useState([]);
-  const [graphEdges, setGraphEdges] = useState([]);
-  const [vertexInput, setVertexInput] = useState("");
-  const [edgeInput, setEdgeInput] = useState("");
-  const [highlightedNode, setHighlightedNode] = useState(null);
-  const [nodeInput, setNodeInput] = useState("");
-  const [searchInput, setSearchInput] = useState("");
-  const [traversalResult, setTraversalResult] = useState("");
-  const [transitioning, setTransitioning] = useState(false);
-  const [transitionText, setTransitionText] = useState("");
   const [pushCount, setPushCount] = useState(0);
   const [enqueueCount, setEnqueueCount] = useState(0);
   const [bfsCount, setBfsCount] = useState(0);
@@ -56,20 +112,23 @@ export default function App() {
   const [showAchievements, setShowAchievements] = useState(false);
   const [achievementPopup, setAchievementPopup] = useState(null);
   const [unlockedAchievements, setUnlockedAchievements] = useState([]);
-  const [startVertex, setStartVertex] = useState("");
-  const [endVertex, setEndVertex] = useState("");
-  const [shortestPath, setShortestPath] = useState([]);
-  const [heapSortResult, setHeapSortResult] = useState("");
   const powerMode = combo >= 5;
+  const { user, authLoading } = useAuth();
+  const {
+    currentWorld,
+    setCurrentWorld,
+    transitioning,
+    transitionText,
+    switchWorld,
+  } = useWorldNavigation();
 
   const currentMission = missions[missionIndex];
 
+
   useEffect(() => {
-    const savedData = localStorage.getItem("stackverse-save");
+    const parsed = loadProgress();
 
-    if (!savedData) return;
-
-    const parsed = JSON.parse(savedData);
+    if (!parsed) return;
 
     setXp(parsed.xp || 0);
     setLevel(parsed.level || 1);
@@ -116,20 +175,17 @@ export default function App() {
   }, [xp]);
 
   useEffect(() => {
-    localStorage.setItem(
-      "stackverse-save",
-      JSON.stringify({
-        xp,
-        level,
-        currentWorld,
-        missionIndex,
-        pushCount,
-        enqueueCount,
-        bfsCount,
-        dfsCount,
-        unlockedAchievements,
-      })
-    );
+    saveProgress({
+      xp,
+      level,
+      currentWorld,
+      missionIndex,
+      pushCount,
+      enqueueCount,
+      bfsCount,
+      dfsCount,
+      unlockedAchievements,
+    });
   }, [
     xp,
     level,
@@ -142,46 +198,30 @@ export default function App() {
     unlockedAchievements,
   ]);
 
+  // Clear traversal result and highlighted node when switching worlds
+  useEffect(() => {
+    setTraversalResult("");
+    setHighlightedNode(null);
+  }, [currentWorld]);
+
   const xpProgress = (xp % 50) * 2;
   const allMissionsCompleted = missionIndex >= missions.length - 1 && missionCompleted;
-  const achievements = [
-    {
-      icon: "🧱",
-      name: "Stack Master",
-      unlocked: pushCount >= 20,
-      progress: `${pushCount}/20`,
-    },
-    {
-      icon: "📬",
-      name: "Queue Commander",
-      unlocked: enqueueCount >= 25,
-      progress: `${enqueueCount}/25`,
-    },
-    {
-      icon: "🌳",
-      name: "Tree Explorer",
-      unlocked: bfsCount >= 5,
-      progress: `${bfsCount}/5`,
-    },
-    {
-      icon: "🔍",
-      name: "DFS Hunter",
-      unlocked: dfsCount >= 5,
-      progress: `${dfsCount}/5`,
-    },
-    {
-      icon: "🏔️",
-      name: "Heap Builder",
-      unlocked: heapInsertCount >= 10,
-      progress: `${heapInsertCount}/10`,
-    },
-    {
-      icon: "⚡",
-      name: "Heap Master",
-      unlocked: heapExtractCount >= 10,
-      progress: `${heapExtractCount}/10`,
-    },
-  ];
+  const achievements = achievementsConfig.map((achievement) => {
+    const value = {
+      pushCount,
+      enqueueCount,
+      bfsCount,
+      dfsCount,
+      heapInsertCount,
+      heapExtractCount,
+    }[achievement.type] || 0;
+
+    return {
+      ...achievement,
+      unlocked: value >= achievement.target,
+      progress: `${value}/${achievement.target}`,
+    };
+  });
 
   const completedAchievements =
     achievements.filter((a) => a.unlocked).length;
@@ -307,636 +347,7 @@ export default function App() {
     setCombo(0);
   };
 
-  const insertNode = () => {
-    const value = Number(nodeInput);
 
-    if (nodeInput.trim() === "" || Number.isNaN(value)) {
-      setWarning("ENTER A NODE VALUE");
-
-      setTimeout(() => {
-        setWarning("");
-      }, 1500);
-
-      return;
-    }
-
-    if (treeNodes.length === 0) {
-      setTreeNodes([value]);
-      setNodeInput("");
-
-      setWarning(`ROOT NODE SET TO ${value}`);
-
-      setTimeout(() => {
-        setWarning("");
-      }, 1500);
-
-      return;
-    }
-
-    const newTree = [...treeNodes];
-    let index = 0;
-
-    while (true) {
-      if (newTree[index] === value) {
-        setWarning("DUPLICATE VALUE");
-
-        setTimeout(() => {
-          setWarning("");
-        }, 1500);
-
-        return;
-      }
-
-      const nextIndex =
-        value < newTree[index]
-          ? index * 2 + 1
-          : index * 2 + 2;
-
-      if (nextIndex > 30) {
-        setWarning("TREE LIMIT REACHED");
-
-        setTimeout(() => {
-          setWarning("");
-        }, 1500);
-
-        return;
-      }
-
-      if (newTree[nextIndex] === undefined) {
-        newTree[nextIndex] = value;
-        break;
-      }
-
-      index = nextIndex;
-    }
-
-    setTreeNodes(newTree);
-    setNodeInput("");
-  };
-
-  const resetTree = () => {
-    setTreeNodes([]);
-    setHighlightedNode(null);
-    setNodeInput("");
-    setSearchInput("");
-    setTraversalResult("");
-  };
-
-  const startBFS = async () => {
-    setBfsCount((prev) => prev + 1);
-    const bfsOrder = [];
-
-    for (let i = 0; i < treeNodes.length; i++) {
-      if (treeNodes[i] !== undefined) {
-        bfsOrder.push(i);
-      }
-    }
-
-    setTraversalResult(
-      `BFS: ${bfsOrder
-        .map((i) => treeNodes[i])
-        .join(" → ")}`
-    );
-
-    for (const nodeIndex of bfsOrder) {
-      setHighlightedNode(nodeIndex);
-
-      await new Promise((resolve) =>
-        setTimeout(resolve, 500)
-      );
-    }
-
-    setHighlightedNode(null);
-  };
-
-  const startDFS = async () => {
-    setDfsCount((prev) => prev + 1);
-    const dfsOrder = [];
-
-    const traverse = (index) => {
-      if (
-        index >= treeNodes.length ||
-        treeNodes[index] === undefined
-      ) {
-        return;
-      }
-
-      dfsOrder.push(index);
-
-      traverse(index * 2 + 1);
-      traverse(index * 2 + 2);
-    };
-
-    traverse(0);
-    setTraversalResult(
-      `DFS: ${dfsOrder
-        .map((i) => treeNodes[i])
-        .join(" → ")}`
-    );
-
-    for (const nodeIndex of dfsOrder) {
-      setHighlightedNode(nodeIndex);
-
-      await new Promise((resolve) =>
-        setTimeout(resolve, 500)
-      );
-    }
-
-    setHighlightedNode(null);
-  };
-
-  // INORDER traversal
-  const startInorder = async () => {
-    const order = [];
-
-    const traverse = (index) => {
-      if (
-        index >= treeNodes.length ||
-        treeNodes[index] === undefined
-      ) {
-        return;
-      }
-
-      traverse(index * 2 + 1);
-      order.push(index);
-      traverse(index * 2 + 2);
-    };
-
-    traverse(0);
-
-    setTraversalResult(
-      `INORDER: ${order
-        .map((i) => treeNodes[i])
-        .join(" → ")}`
-    );
-
-    for (const nodeIndex of order) {
-      setHighlightedNode(nodeIndex);
-
-      await new Promise((resolve) =>
-        setTimeout(resolve, 500)
-      );
-    }
-
-    setHighlightedNode(null);
-  };
-
-  // PREORDER traversal
-  const startPreorder = async () => {
-    const order = [];
-
-    const traverse = (index) => {
-      if (
-        index >= treeNodes.length ||
-        treeNodes[index] === undefined
-      ) {
-        return;
-      }
-
-      order.push(index);
-      traverse(index * 2 + 1);
-      traverse(index * 2 + 2);
-    };
-
-    traverse(0);
-
-    setTraversalResult(
-      `PREORDER: ${order
-        .map((i) => treeNodes[i])
-        .join(" → ")}`
-    );
-
-    for (const nodeIndex of order) {
-      setHighlightedNode(nodeIndex);
-
-      await new Promise((resolve) =>
-        setTimeout(resolve, 500)
-      );
-    }
-
-    setHighlightedNode(null);
-  };
-
-  // POSTORDER traversal
-  const startPostorder = async () => {
-    const order = [];
-
-    const traverse = (index) => {
-      if (
-        index >= treeNodes.length ||
-        treeNodes[index] === undefined
-      ) {
-        return;
-      }
-
-      traverse(index * 2 + 1);
-      traverse(index * 2 + 2);
-      order.push(index);
-    };
-
-    traverse(0);
-
-    setTraversalResult(
-      `POSTORDER: ${order
-        .map((i) => treeNodes[i])
-        .join(" → ")}`
-    );
-
-    for (const nodeIndex of order) {
-      setHighlightedNode(nodeIndex);
-
-      await new Promise((resolve) =>
-        setTimeout(resolve, 500)
-      );
-    }
-
-    setHighlightedNode(null);
-  };
-
-  const searchNode = async () => {
-    const target = Number(searchInput);
-
-    if (searchInput.trim() === "" || Number.isNaN(target)) {
-      setWarning("ENTER SEARCH VALUE");
-
-      setTimeout(() => {
-        setWarning("");
-      }, 1500);
-
-      return;
-    }
-
-    let index = 0;
-
-    while (
-      index < treeNodes.length &&
-      treeNodes[index] !== undefined
-    ) {
-      setHighlightedNode(index);
-
-      await new Promise((resolve) =>
-        setTimeout(resolve, 700)
-      );
-
-      if (treeNodes[index] === target) {
-        setWarning(`FOUND ${target} ✅`);
-
-        setTimeout(() => {
-          setWarning("");
-        }, 1500);
-
-        setHighlightedNode(null);
-        return;
-      }
-
-      index =
-        target < treeNodes[index]
-          ? index * 2 + 1
-          : index * 2 + 2;
-    }
-
-    setWarning(`NODE ${target} NOT FOUND ❌`);
-
-    setTimeout(() => {
-      setWarning("");
-    }, 1500);
-
-    setHighlightedNode(null);
-  };
-
-  // Add Vertex to Graph
-  const addVertex = () => {
-    const value = vertexInput.trim().toUpperCase();
-
-    if (!value) {
-      setWarning("ENTER VERTEX NAME");
-      setTimeout(() => setWarning(""), 1500);
-      return;
-    }
-
-    if (graphNodes.includes(value)) {
-      setWarning("VERTEX EXISTS");
-      setTimeout(() => setWarning(""), 1500);
-      return;
-    }
-
-    setGraphNodes((prev) => [...prev, value]);
-    if (graphNodes.length === 0) {
-      setWarning(`ROOT VERTEX SET TO ${value}`);
-
-      setTimeout(() => {
-        setWarning("");
-      }, 1500);
-    }
-    setVertexInput("");
-  };
-
-  const addEdge = () => {
-    const value = edgeInput.trim().toUpperCase();
-
-    if (!value.includes("-")) {
-      setWarning("USE FORMAT A-B");
-      setTimeout(() => setWarning(""), 1500);
-      return;
-    }
-
-    const [from, to] = value.split("-");
-
-    if (!graphNodes.includes(from) || !graphNodes.includes(to)) {
-      setWarning("VERTEX NOT FOUND");
-      setTimeout(() => setWarning(""), 1500);
-      return;
-    }
-
-    setGraphEdges((prev) => [...prev, [from, to]]);
-    setEdgeInput("");
-  };
-
-  const deleteEdge = () => {
-    const value = edgeInput.trim().toUpperCase();
-
-    if (!value.includes("-")) {
-      setWarning("USE FORMAT A-B");
-      setTimeout(() => setWarning(""), 1500);
-      return;
-    }
-
-    const [from, to] = value.split("-");
-
-    const beforeCount = graphEdges.length;
-
-    setGraphEdges((prev) =>
-      prev.filter(
-        ([a, b]) => !(a === from && b === to)
-      )
-    );
-
-    if (beforeCount === graphEdges.length) {
-      setWarning("EDGE REMOVED");
-    }
-
-    setEdgeInput("");
-
-    setTimeout(() => setWarning(""), 1500);
-  };
-
-  // Real Graph BFS functionality
-  const startGraphBFS = async () => {
-    if (graphNodes.length === 0) return;
-
-    const start = graphNodes[0];
-
-    const adjacency = {};
-
-    graphNodes.forEach((node) => {
-      adjacency[node] = [];
-    });
-
-    graphEdges.forEach(([from, to]) => {
-      adjacency[from]?.push(to);
-      adjacency[to]?.push(from);
-    });
-
-    const visited = new Set();
-    const queue = [start];
-    const order = [];
-
-    visited.add(start);
-
-    while (queue.length > 0) {
-      const node = queue.shift();
-      order.push(node);
-
-      for (const neighbor of adjacency[node]) {
-        if (!visited.has(neighbor)) {
-          visited.add(neighbor);
-          queue.push(neighbor);
-        }
-      }
-    }
-
-    setTraversalResult(`GRAPH BFS: ${order.join(" → ")}`);
-
-    for (const node of order) {
-      const index = graphNodes.indexOf(node);
-      setHighlightedNode(index);
-
-      await new Promise((resolve) =>
-        setTimeout(resolve, 500)
-      );
-    }
-
-    setHighlightedNode(null);
-  };
-
-  // Real Graph DFS functionality
-  const startGraphDFS = async () => {
-    if (graphNodes.length === 0) return;
-
-    const start = graphNodes[0];
-
-    const adjacency = {};
-
-    graphNodes.forEach((node) => {
-      adjacency[node] = [];
-    });
-
-    graphEdges.forEach(([from, to]) => {
-      adjacency[from]?.push(to);
-      adjacency[to]?.push(from);
-    });
-
-    const visited = new Set();
-    const order = [];
-
-    const dfs = (node) => {
-      visited.add(node);
-      order.push(node);
-
-      for (const neighbor of adjacency[node]) {
-        if (!visited.has(neighbor)) {
-          dfs(neighbor);
-        }
-      }
-    };
-
-    dfs(start);
-
-    setTraversalResult(`GRAPH DFS: ${order.join(" → ")}`);
-
-    for (const node of order) {
-      const index = graphNodes.indexOf(node);
-      setHighlightedNode(index);
-
-      await new Promise((resolve) =>
-        setTimeout(resolve, 500)
-      );
-    }
-
-    setHighlightedNode(null);
-  };
-
-  const findShortestPath = async () => {
-    const start = startVertex.trim().toUpperCase();
-    const end = endVertex.trim().toUpperCase();
-
-    if (!start || !end) {
-      setWarning("ENTER START & END");
-      setTimeout(() => setWarning(""), 1500);
-      return;
-    }
-
-    const adjacency = {};
-
-    graphNodes.forEach((node) => {
-      adjacency[node] = [];
-    });
-
-    graphEdges.forEach(([from, to]) => {
-      adjacency[from]?.push(to);
-      adjacency[to]?.push(from);
-    });
-
-    const queue = [[start]];
-    const visited = new Set([start]);
-
-    while (queue.length) {
-      const path = queue.shift();
-      const node = path[path.length - 1];
-
-      if (node === end) {
-        setShortestPath(path);
-        setTraversalResult(
-          `SHORTEST PATH: ${path.join(" → ")}`
-        );
-
-        for (const current of path) {
-          const index = graphNodes.indexOf(current);
-          setHighlightedNode(index);
-
-          await new Promise((resolve) =>
-            setTimeout(resolve, 500)
-          );
-        }
-
-        setHighlightedNode(null);
-        return;
-      }
-
-      for (const neighbor of adjacency[node] || []) {
-        if (!visited.has(neighbor)) {
-          visited.add(neighbor);
-          queue.push([...path, neighbor]);
-        }
-      }
-    }
-
-    setTraversalResult("NO PATH FOUND");
-  };
-
-  const resetGraph = () => {
-    setGraphNodes([]);
-    setGraphEdges([]);
-    setVertexInput("");
-    setEdgeInput("");
-    setHighlightedNode(null);
-    setTraversalResult("");
-  };
-
-  const deleteVertex = () => {
-    const value = vertexInput.trim().toUpperCase();
-
-    if (!value) {
-      setWarning("ENTER VERTEX NAME");
-      setTimeout(() => setWarning(""), 1500);
-      return;
-    }
-
-    if (!graphNodes.includes(value)) {
-      setWarning("VERTEX NOT FOUND");
-      setTimeout(() => setWarning(""), 1500);
-      return;
-    }
-
-    setGraphNodes((prev) => prev.filter((v) => v !== value));
-    setGraphEdges((prev) =>
-      prev.filter(([from, to]) => from !== value && to !== value)
-    );
-
-    setVertexInput("");
-    setWarning(`DELETED ${value}`);
-    setTimeout(() => setWarning(""), 1500);
-  };
-
-  // Simple BST Delete Node feature
-  const deleteNode = () => {
-    const target = Number(searchInput);
-
-    if (searchInput.trim() === "" || Number.isNaN(target)) {
-      setWarning("ENTER VALUE TO DELETE");
-
-      setTimeout(() => {
-        setWarning("");
-      }, 1500);
-
-      return;
-    }
-
-    const values = treeNodes.filter(
-      (value) => value !== undefined
-    );
-
-    if (!values.includes(target)) {
-      setWarning("NODE NOT FOUND ❌");
-
-      setTimeout(() => {
-        setWarning("");
-      }, 1500);
-
-      return;
-    }
-
-    const remainingValues = values.filter(
-      (value) => value !== target
-    );
-
-    const rebuiltTree = [];
-
-    const insertIntoBSTArray = (value) => {
-      if (rebuiltTree.length === 0) {
-        rebuiltTree[0] = value;
-        return;
-      }
-
-      let index = 0;
-
-      while (true) {
-        const nextIndex =
-          value < rebuiltTree[index]
-            ? index * 2 + 1
-            : index * 2 + 2;
-
-        if (rebuiltTree[nextIndex] === undefined) {
-          rebuiltTree[nextIndex] = value;
-          return;
-        }
-
-        index = nextIndex;
-      }
-    };
-
-    remainingValues.forEach(insertIntoBSTArray);
-
-    setTreeNodes(rebuiltTree);
-    setSearchInput("");
-    setTraversalResult("");
-
-    setWarning(`DELETED ${target} 🗑️`);
-
-    setTimeout(() => {
-      setWarning("");
-    }, 1500);
-  };
 
   const insertHeap = () => {
     const value = Number(heapInput);
@@ -1104,20 +515,168 @@ export default function App() {
     setXp((prev) => prev + 20);
   };
 
-  const switchWorld = (world, label) => {
-    if (currentWorld === world) return;
+  const handleGraphBFS = async () => {
+    const result = startGraphBFS();
 
-    setTransitionText(label);
-    setTransitioning(true);
+    if (!result.length) return;
 
-    setTimeout(() => {
-      setCurrentWorld(world);
-    }, 350);
+    setTraversalResult(`GRAPH BFS: ${result.join(" → ")}`);
+    setBfsCount((prev) => prev + 1);
 
-    setTimeout(() => {
-      setTransitioning(false);
-    }, 900);
+    for (const node of result) {
+      const index = graphNodes.indexOf(node);
+      setHighlightedNode(index);
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+
+    setHighlightedNode(null);
   };
+
+  const handleGraphDFS = async () => {
+    const result = startGraphDFS();
+
+    if (!result.length) return;
+
+    setTraversalResult(`GRAPH DFS: ${result.join(" → ")}`);
+    setDfsCount((prev) => prev + 1);
+
+    for (const node of result) {
+      const index = graphNodes.indexOf(node);
+      setHighlightedNode(index);
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+
+    setHighlightedNode(null);
+  };
+
+  const handleShortestPath = async () => {
+    const path = findShortestPath();
+
+    if (!path.length) {
+      setTraversalResult("NO PATH FOUND");
+      return;
+    }
+
+    setTraversalResult(`PATH: ${path.join(" → ")}`);
+
+    for (const node of path) {
+      const index = graphNodes.indexOf(node);
+      setHighlightedNode(index);
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+
+    setHighlightedNode(null);
+  };
+
+  const handleTreeBFS = async () => {
+    const result = startBFS();
+
+    if (!Array.isArray(result) || !result.length) return;
+
+    setTraversalResult(`TREE BFS: ${result.join(" → ")}`);
+    setBfsCount((prev) => prev + 1);
+
+    for (const node of result) {
+      setHighlightedNode(node);
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+
+    setHighlightedNode(null);
+  };
+
+  const handleTreeDFS = async () => {
+    const result = startDFS();
+
+    if (!Array.isArray(result) || !result.length) return;
+
+    setTraversalResult(`TREE DFS: ${result.join(" → ")}`);
+    setDfsCount((prev) => prev + 1);
+
+    for (const node of result) {
+      setHighlightedNode(node);
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+
+    setHighlightedNode(null);
+  };
+
+  const handleTreeInorder = async () => {
+    const result = startInorder();
+
+    if (!Array.isArray(result) || !result.length) return;
+
+    setTraversalResult(`INORDER: ${result.join(" → ")}`);
+
+    for (const node of result) {
+      setHighlightedNode(node);
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+
+    setHighlightedNode(null);
+  };
+
+  const handleTreePreorder = async () => {
+    const result = startPreorder();
+
+    if (!Array.isArray(result) || !result.length) return;
+
+    setTraversalResult(`PREORDER: ${result.join(" → ")}`);
+
+    for (const node of result) {
+      setHighlightedNode(node);
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+
+    setHighlightedNode(null);
+  };
+
+  const handleTreePostorder = async () => {
+    const result = startPostorder();
+
+    if (!Array.isArray(result) || !result.length) return;
+
+    setTraversalResult(`POSTORDER: ${result.join(" → ")}`);
+
+    for (const node of result) {
+      setHighlightedNode(node);
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+
+    setHighlightedNode(null);
+  };
+
+  const handleTreeSearch = () => {
+    const found = searchNode(searchInput);
+
+    if (found) {
+      setTraversalResult(`FOUND NODE: ${searchInput}`);
+    } else {
+      setTraversalResult(`NODE ${searchInput} NOT FOUND`);
+    }
+  };
+
+
+  if (authLoading) {
+    return (
+      <div
+        style={{
+          height: "100vh",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          background: "#020617",
+          color: "white",
+          fontSize: "24px",
+        }}
+      >
+        Loading StackVerse...
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Login />;
+  }
 
   return (
     <>
@@ -1384,7 +943,7 @@ export default function App() {
                   onChange={(e) => setSearchInput(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
-                      searchNode();
+                      handleTreeSearch();
                     }
                   }}
                   placeholder="Search"
@@ -1413,7 +972,7 @@ export default function App() {
                   ADD NODE
                 </button>
                 <button
-                  onClick={searchNode}
+                  onClick={handleTreeSearch}
                   style={{
                     padding: "14px 24px",
                     borderRadius: "16px",
@@ -1427,7 +986,7 @@ export default function App() {
                   SEARCH
                 </button>
                 <button
-                  onClick={deleteNode}
+                  onClick={() => deleteNode(searchInput)}
                   style={{
                     padding: "14px 24px",
                     borderRadius: "16px",
@@ -1455,7 +1014,7 @@ export default function App() {
                   RESET TREE
                 </button>
                 <button
-                  onClick={startBFS}
+                  onClick={handleTreeBFS}
                   style={{
                     padding: "14px 24px",
                     borderRadius: "16px",
@@ -1469,7 +1028,7 @@ export default function App() {
                   START BFS
                 </button>
                 <button
-                  onClick={startDFS}
+                  onClick={handleTreeDFS}
                   style={{
                     padding: "14px 24px",
                     borderRadius: "16px",
@@ -1483,7 +1042,7 @@ export default function App() {
                   START DFS
                 </button>
                 <button
-                  onClick={startInorder}
+                  onClick={handleTreeInorder}
                   style={{
                     padding: "14px 24px",
                     borderRadius: "16px",
@@ -1496,7 +1055,7 @@ export default function App() {
                   INORDER
                 </button>
                 <button
-                  onClick={startPreorder}
+                  onClick={handleTreePreorder}
                   style={{
                     padding: "14px 24px",
                     borderRadius: "16px",
@@ -1509,7 +1068,7 @@ export default function App() {
                   PREORDER
                 </button>
                 <button
-                  onClick={startPostorder}
+                  onClick={handleTreePostorder}
                   style={{
                     padding: "14px 24px",
                     borderRadius: "16px",
@@ -1689,7 +1248,7 @@ export default function App() {
                 </button>
 
                 <button
-                  onClick={startGraphBFS}
+                  onClick={handleGraphBFS}
                   style={{
                     padding: "14px 24px",
                     borderRadius: "16px",
@@ -1703,7 +1262,7 @@ export default function App() {
                 </button>
 
                 <button
-                  onClick={startGraphDFS}
+                  onClick={handleGraphDFS}
                   style={{
                     padding: "14px 24px",
                     borderRadius: "16px",
@@ -1716,7 +1275,7 @@ export default function App() {
                   GRAPH DFS
                 </button>
                 <button
-                  onClick={findShortestPath}
+                  onClick={handleShortestPath}
                   style={{
                     padding: "14px 24px",
                     borderRadius: "16px",
@@ -2060,6 +1619,58 @@ export default function App() {
           }}
         >
           🏆 Awards
+        </button>
+      </div>
+
+      <div
+        style={{
+          position: "absolute",
+          top: "18px",
+          right: "20px",
+          zIndex: 400,
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          padding: "8px 10px",
+          borderRadius: "999px",
+          background: "rgba(15,23,42,0.72)",
+          backdropFilter: "blur(14px)",
+          border: "1px solid rgba(255,255,255,0.08)",
+        }}
+      >
+        <span
+          style={{
+            color: "white",
+            fontWeight: "bold",
+            maxWidth: "120px",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          👤 {user?.email?.split('@')[0]}
+        </span>
+
+        <button
+          onClick={() => signOut(auth)}
+          style={{
+            padding: "8px 12px",
+            borderRadius: "999px",
+            border: "none",
+            background: "#ef4444",
+            color: "white",
+            cursor: "pointer",
+            fontWeight: "bold",
+            fontSize: "13px",
+            width: "36px",
+            height: "36px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "0",
+          }}
+        >
+          ⏻
         </button>
       </div>
 

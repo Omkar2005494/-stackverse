@@ -93,26 +93,28 @@ export default function TreeWorld({
   highlightedNode,
 }) {
   const treeLayout = useMemo(() => {
-    return nodes.map((value, index) => {
-      const level = Math.floor(Math.log2(index + 1));
-      const levelStart = Math.pow(2, level) - 1;
-      const positionInLevel = index - levelStart;
-      const nodesInLevel = Math.pow(2, level);
+    return nodes
+      .filter((value) => value !== undefined && value !== null)
+      .map((value, index) => {
+        const level = Math.floor(Math.log2(index + 1));
+        const levelStart = Math.pow(2, level) - 1;
+        const positionInLevel = index - levelStart;
+        const nodesInLevel = Math.pow(2, level);
 
-      const spread = Math.max(1.5, 8 / Math.pow(2, level));
+        const spread = Math.max(1.5, 8 / Math.pow(2, level));
 
-      const x =
-        (positionInLevel - (nodesInLevel - 1) / 2) *
-        spread *
-        2;
+        const x =
+          (positionInLevel - (nodesInLevel - 1) / 2) *
+          spread *
+          2;
 
-      const y = 5 - level * 3;
+        const y = 5 - level * 3;
 
-      return {
-        value,
-        position: [x, y, 0],
-      };
-    });
+        return {
+          value,
+          position: [x, y, 0],
+        };
+      });
   }, [nodes]);
   return (
     <Canvas
@@ -140,7 +142,7 @@ export default function TreeWorld({
           position={node.position}
           value={node.value}
           index={index}
-          highlighted={highlightedNode === index}
+          highlighted={highlightedNode === node.value}
         />
       ))}
 
