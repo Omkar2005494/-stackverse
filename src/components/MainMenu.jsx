@@ -1,4 +1,5 @@
 import { useState } from "react";
+import ProfileModal from "./ProfileModal";
 import StackPreview from "./StackPreview";
 import QueuePreview from "./QueuePreview";
 import TreePreview from "./TreePreview";
@@ -8,6 +9,7 @@ import HeapPreview from "./HeapPreview";
 export default function MainMenu({ onStart, graphPreview }) {
   const [loading, setLoading] = useState(false);
   const [hoveredCard, setHoveredCard] = useState(null);
+  const [showProfile, setShowProfile] = useState(false);
 
   const handleStart = () => {
     setLoading(true);
@@ -202,6 +204,23 @@ export default function MainMenu({ onStart, graphPreview }) {
           }}
         >
           📖 Explore Worlds
+        </div>
+        <div
+          onClick={() => setShowProfile(true)}
+          style={{
+            marginTop: "14px",
+            padding: "14px 28px",
+            borderRadius: "16px",
+            background: "rgba(34,211,238,0.12)",
+            border: "1px solid rgba(34,211,238,0.35)",
+            color: "#22d3ee",
+            fontWeight: "bold",
+            letterSpacing: "2px",
+            textTransform: "uppercase",
+            cursor: "pointer",
+          }}
+        >
+          👤 Adventurer Profile
         </div>
 
       </div>
@@ -595,6 +614,10 @@ export default function MainMenu({ onStart, graphPreview }) {
   </div>
 </div>
       </div>
+      <ProfileModal
+        isOpen={showProfile}
+        onClose={() => setShowProfile(false)}
+      />
       {loading && (
         <div
           style={{

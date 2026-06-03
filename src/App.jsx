@@ -29,9 +29,15 @@ import { useTreeLogic } from "./hooks/useTreeLogic";
 
 import { useHeapLogic } from "./hooks/useHeapLogic";
 import { useGraphLogic } from "./hooks/useGraphLogic";
+import { useGameProgress } from "./context/GameProgressContext";
 
 
 export default function App() {
+  const {
+    xp,
+    level,
+    addXP,
+  } = useGameProgress();
   const { stack, setStack } = useStackLogic();
   const { queue, setQueue } = useQueueLogic();
   const {
@@ -95,8 +101,7 @@ export default function App() {
     heapSortResult,
     setHeapSortResult,
   } = useHeapLogic();
-  const [xp, setXp] = useState(0);
-  const [level, setLevel] = useState(1);
+  // XP and level are now managed by GameProgressContext
   const [showLevelUp, setShowLevelUp] = useState(false);
   const [warning, setWarning] = useState("");
   const [shake, setShake] = useState(false);
@@ -130,8 +135,7 @@ export default function App() {
 
     if (!parsed) return;
 
-    setXp(parsed.xp || 0);
-    setLevel(parsed.level || 1);
+    // XP and level are now managed by GameProgressContext
     setCurrentWorld(parsed.currentWorld || "stack");
     setMissionIndex(parsed.missionIndex || 0);
     setPushCount(parsed.pushCount || 0);
@@ -154,25 +158,13 @@ export default function App() {
     const timeout = setTimeout(() => {
       if (missionIndex < missions.length - 1) {
         setMissionIndex(missionIndex + 1);
-        setXp((prev) => prev + 50);
+        addXP(50);
       }
     }, 1500);
 
     return () => clearTimeout(timeout);
   }, [missionCompleted]);
 
-  useEffect(() => {
-    const calculatedLevel = Math.floor(xp / 50) + 1;
-
-    if (calculatedLevel > level) {
-      setLevel(calculatedLevel);
-      setShowLevelUp(true);
-
-      setTimeout(() => {
-        setShowLevelUp(false);
-      }, 2000);
-    }
-  }, [xp]);
 
   useEffect(() => {
     saveProgress({
@@ -242,7 +234,7 @@ export default function App() {
         ]);
 
         setAchievementPopup(achievement.name);
-        setXp((prev) => prev + 50);
+        addXP(50);
 
         setTimeout(() => {
           setAchievementPopup(null);
@@ -270,8 +262,7 @@ export default function App() {
     setPushCount((prev) => prev + 1);
 
     const gainedXp = powerMode ? 20 : 10;
-    const newXp = xp + gainedXp;
-    setXp(newXp);
+    addXP(gainedXp);
     setCombo(combo + 1);
     setShowXP(true);
     setShowShockwave(true);
@@ -318,7 +309,7 @@ export default function App() {
 
     const gainedXp = powerMode ? 20 : 10;
 
-    setXp((prev) => prev + gainedXp);
+    addXP(gainedXp);
     setCombo((prev) => prev + 1);
 
     setShowXP(true);
@@ -390,7 +381,7 @@ export default function App() {
     }
 
     setHeapInsertCount((prev) => prev + 1);
-    setXp((prev) => prev + 10);
+    addXP(10);
     setHeap(newHeap);
     setHeapInput("");
   };
@@ -447,7 +438,7 @@ export default function App() {
     }
 
     setHeapExtractCount((prev) => prev + 1);
-    setXp((prev) => prev + 10);
+    addXP(10);
     setHeap(newHeap);
   };
 
@@ -502,7 +493,7 @@ export default function App() {
 
     setHeap(rebuiltHeap);
     setHeapInput("");
-    setXp((prev) => prev + 10);
+    addXP(10);
   };
 
   const heapSort = () => {
@@ -512,7 +503,7 @@ export default function App() {
       `SORTED: ${sorted.join(" → ")}`
     );
 
-    setXp((prev) => prev + 20);
+    addXP(20);
   };
 
   const handleGraphBFS = async () => {
@@ -1420,7 +1411,7 @@ export default function App() {
                     });
 
                     setHeap(rebuiltHeap);
-                    setXp((prev) => prev + 5);
+                    addXP(5);
                   }}
                 >
                   {heapType === "min" ? "MIN HEAP" : "MAX HEAP"}

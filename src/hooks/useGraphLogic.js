@@ -1,6 +1,13 @@
 import { useState } from "react";
+import { useGameProgress } from "../context/GameProgressContext";
 
 export function useGraphLogic() {
+  const {
+    addXP,
+    incrementStat,
+    unlockAchievement,
+  } = useGameProgress();
+
   const [graphNodes, setGraphNodes] = useState([]);
   const [graphEdges, setGraphEdges] = useState([]);
   const [vertexInput, setVertexInput] = useState("");
@@ -16,6 +23,8 @@ export function useGraphLogic() {
     if (graphNodes.includes(value)) return false;
 
     setGraphNodes((prev) => [...prev, value]);
+    addXP(5);
+    incrementStat("nodesAdded");
     setVertexInput("");
 
     return true;
@@ -46,6 +55,8 @@ export function useGraphLogic() {
     if (!graphNodes.includes(from) || !graphNodes.includes(to)) return false;
 
     setGraphEdges((prev) => [...prev, [from, to]]);
+    addXP(5);
+    incrementStat("graphOperations");
     setEdgeInput("");
     return true;
   };
@@ -93,6 +104,13 @@ export function useGraphLogic() {
       });
     }
 
+    addXP(25);
+    incrementStat("bfsRuns");
+
+    if (result.length >= 5) {
+      unlockAchievement("🌐 BFS Explorer");
+    }
+
     return result;
   };
 
@@ -114,6 +132,14 @@ export function useGraphLogic() {
     };
 
     dfs(graphNodes[0]);
+
+    addXP(25);
+    incrementStat("dfsRuns");
+
+    if (result.length >= 5) {
+      unlockAchievement("🕸 DFS Explorer");
+    }
+
     return result;
   };
 
@@ -132,6 +158,11 @@ export function useGraphLogic() {
 
       if (node === end) {
         setShortestPath(path);
+
+        addXP(50);
+        incrementStat("graphOperations");
+        unlockAchievement("🧭 Pathfinder");
+
         return path;
       }
 

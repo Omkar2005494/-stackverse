@@ -1,5 +1,6 @@
 import { Canvas } from "@react-three/fiber";
 import { useMemo, useEffect, useState } from "react";
+import { useGameProgress } from "../context/GameProgressContext";
 import { OrbitControls, Float, Text } from "@react-three/drei";
 
 function GraphNode({
@@ -97,6 +98,11 @@ export default function GraphWorld({
   ],
   highlightedNode,
 }) {
+  const {
+    addXP,
+    incrementStat,
+    unlockAchievement,
+  } = useGameProgress();
   const graphLayout = useMemo(() => {
     if (nodes.length === 0) return [];
 
@@ -187,6 +193,17 @@ export default function GraphWorld({
       position: positionMap[value],
     }));
   }, [nodes, edges]);
+
+  useEffect(() => {
+    if (nodes.length > 0) {
+      incrementStat("graphOperations");
+      addXP(5);
+    }
+
+    if (nodes.length >= 5) {
+      unlockAchievement("🌐 Graph Explorer");
+    }
+  }, [nodes.length]);
 
   const nodePositions = Object.fromEntries(
     graphLayout.map((node) => [
