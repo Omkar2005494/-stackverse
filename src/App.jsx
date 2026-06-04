@@ -122,6 +122,7 @@ export default function App() {
   const [unlockedAchievements, setUnlockedAchievements] = useState([]);
   const powerMode = combo >= 5;
   const { user, authLoading } = useAuth();
+  const [showSplash, setShowSplash] = useState(true);
   const {
     currentWorld,
     setCurrentWorld,
@@ -129,6 +130,14 @@ export default function App() {
     transitionText,
     switchWorld,
   } = useWorldNavigation();
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowSplash(false);
+    }, 2500);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const currentMission = missions[missionIndex];
 
@@ -649,21 +658,97 @@ export default function App() {
     }
   };
 
-
-  if (authLoading) {
+  if (authLoading || showSplash) {
     return (
       <div
         style={{
           height: "100vh",
           display: "flex",
+          flexDirection: "column",
           justifyContent: "center",
           alignItems: "center",
-          background: "#020617",
-          color: "white",
-          fontSize: "24px",
+          background:
+            "radial-gradient(circle at center, #0f172a 0%, #020617 70%)",
+          overflow: "hidden",
+          position: "relative",
         }}
       >
-        Loading StackVerse...
+        <div
+          style={{
+            position: "absolute",
+            width: "380px",
+            height: "380px",
+            borderRadius: "50%",
+            background: "rgba(34,211,238,0.08)",
+            filter: "blur(50px)",
+          }}
+        />
+
+        <div
+          style={{
+            width: "250px",
+            height: "250px",
+            borderRadius: "50%",
+            border: "5px solid rgba(34,211,238,0.18)",
+            borderTop: "5px solid #22d3ee",
+            boxShadow: "0 0 60px rgba(34,211,238,0.45)",
+            animation: "spin 1.2s linear infinite",
+            position: "absolute",
+            zIndex: 0,
+          }}
+        />
+
+        <h1
+          style={{
+            color: "#22d3ee",
+            fontSize: "42px",
+            letterSpacing: "4px",
+            marginBottom: "24px",
+            zIndex: 1,
+            textShadow: "0 0 25px rgba(34,211,238,0.6)",
+          }}
+        >
+          ⚡ STACKVERSE
+        </h1>
+
+        <p
+          style={{
+            color: "#cbd5e1",
+            fontSize: "18px",
+            marginBottom: "24px",
+            zIndex: 1,
+          }}
+        >
+          Entering the Data Structure Universe...
+        </p>
+
+        <div
+          style={{
+            width: "350px",
+            maxWidth: "80vw",
+            height: "10px",
+            borderRadius: "999px",
+            background: "rgba(255,255,255,0.08)",
+            overflow: "hidden",
+            zIndex: 1,
+          }}
+        >
+          <div
+            style={{
+              width: "75%",
+              height: "100%",
+              background:
+                "linear-gradient(90deg,#22d3ee,#6366f1)",
+            }}
+          />
+        </div>
+
+        <style>{`
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
       </div>
     );
   }
