@@ -1,5 +1,3 @@
-
-
 import React from "react";
 import { useGameProgress } from "../context/GameProgressContext";
 
@@ -12,8 +10,10 @@ export default function ProfileModal({
   const {
     xp,
     level,
+    rank,
     achievements,
     stats,
+    streakCount,
   } = useGameProgress();
 
   const xpPercent = Math.min((xp / 2000) * 100, 100);
@@ -32,8 +32,10 @@ export default function ProfileModal({
     >
       <div
         style={{
-          width: "500px",
+          width: "460px",
           maxWidth: "90vw",
+          maxHeight: "80vh",
+          overflowY: "auto",
           background: "rgba(15,23,42,0.9)",
           backdropFilter: "blur(20px)",
           border: "1px solid rgba(34,211,238,0.3)",
@@ -43,12 +45,41 @@ export default function ProfileModal({
         }}
       >
         <h1 style={{ color: "#22d3ee", marginTop: 0 }}>
-          👤 Adventurer Profile
+          👤 Adventurer
         </h1>
 
-        <h2>Level {level}</h2>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            gap: "12px",
+            marginBottom: "14px",
+          }}
+        >
+          <h2 style={{ margin: 0 }}>Level {level}</h2>
 
-        <p>XP: {xp} / 2000</p>
+          <span
+            style={{
+              color: "#22d3ee",
+              fontWeight: "bold",
+              fontSize: "18px",
+            }}
+          >
+            {rank}
+          </span>
+        </div>
+
+        <p
+          style={{
+            textAlign: "center",
+            fontWeight: "bold",
+            marginBottom: "10px",
+            color: "#22d3ee",
+          }}
+        >
+          ⭐ {xp} / 2000 XP
+        </p>
 
         <div
           style={{
@@ -69,6 +100,30 @@ export default function ProfileModal({
           />
         </div>
 
+        <div
+          style={{
+            background: "rgba(249,115,22,0.08)",
+            border: "1px solid rgba(249,115,22,0.25)",
+            borderRadius: "10px",
+            padding: "10px",
+            marginBottom: "18px",
+          }}
+        >
+          <p style={{ margin: 0 }}>
+            🔥 Streak: <strong>{streakCount}</strong> day{streakCount === 1 ? "" : "s"}
+          </p>
+
+          <p
+            style={{
+              margin: "6px 0 0",
+              opacity: 0.8,
+              fontSize: "14px",
+            }}
+          >
+            🎁 Day 7 Reward: +100 XP
+          </p>
+        </div>
+
         <h3>🏆 Achievements</h3>
 
         {achievements.length ? (
@@ -83,12 +138,54 @@ export default function ProfileModal({
 
         <h3>📊 Statistics</h3>
 
-        <p>Nodes Added: {stats.nodesAdded}</p>
-        <p>Graph Operations: {stats.graphOperations}</p>
-        <p>Trees Built: {stats.treesBuilt}</p>
-        <p>BFS Runs: {stats.bfsRuns}</p>
-        <p>DFS Runs: {stats.dfsRuns}</p>
-        <p>Heap Operations: {stats.heapOperations}</p>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "10px",
+            marginTop: "12px",
+          }}
+        >
+          {[
+            ["Nodes", stats.nodesAdded],
+            ["BFS", stats.bfsRuns],
+            ["Graph", stats.graphOperations],
+            ["DFS", stats.dfsRuns],
+            ["Trees", stats.treesBuilt],
+            ["Heap", stats.heapOperations],
+          ].map(([label, value]) => (
+            <div
+              key={label}
+              style={{
+                background: "rgba(34,211,238,0.08)",
+                border: "1px solid rgba(34,211,238,0.18)",
+                borderRadius: "12px",
+                padding: "12px",
+                textAlign: "center",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "13px",
+                  opacity: 0.8,
+                  marginBottom: "6px",
+                }}
+              >
+                {label}
+              </div>
+
+              <div
+                style={{
+                  fontSize: "20px",
+                  fontWeight: "bold",
+                  color: "#22d3ee",
+                }}
+              >
+                {value}
+              </div>
+            </div>
+          ))}
+        </div>
 
         <button
           onClick={onClose}

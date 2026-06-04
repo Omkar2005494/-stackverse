@@ -10,6 +10,7 @@ import HeapWorld from "./worlds/HeapWorld";
 import HUD from "./components/HUD";
 import Controls from "./components/Controls";
 import LevelPopup from "./components/LevelPopup";
+import LevelUpPopup from "./components/LevelUpPopup";
 import WarningPopup from "./components/WarningPopup";
 import MissionPanel from "./components/MissionPanel";
 import ComboPopup from "./components/ComboPopup";
@@ -36,7 +37,10 @@ export default function App() {
   const {
     xp,
     level,
+    rank,
     addXP,
+    showLevelUp,
+    levelReached,
   } = useGameProgress();
   const { stack, setStack } = useStackLogic();
   const { queue, setQueue } = useQueueLogic();
@@ -102,7 +106,6 @@ export default function App() {
     setHeapSortResult,
   } = useHeapLogic();
   // XP and level are now managed by GameProgressContext
-  const [showLevelUp, setShowLevelUp] = useState(false);
   const [warning, setWarning] = useState("");
   const [shake, setShake] = useState(false);
   const [combo, setCombo] = useState(0);
@@ -705,6 +708,10 @@ export default function App() {
         />
       )}
       <LevelPopup show={showLevelUp} />
+      <LevelUpPopup
+        isOpen={showLevelUp}
+        level={levelReached}
+      />
       <WarningPopup warning={warning} />
       <ComboPopup combo={combo} />
       <FloatingXP
@@ -743,8 +750,6 @@ export default function App() {
             QUEUE CITY
           </h3>
           <p>Queue Size: {queue.length}/5</p>
-          <p>XP: {xp}</p>
-          <p>Level: {level}</p>
         </div>
       )}
 
@@ -773,8 +778,6 @@ export default function App() {
           <p>
             Root: {treeNodes.length > 0 ? treeNodes[0] : "None"}
           </p>
-          <p>XP: {xp}</p>
-          <p>Level: {level}</p>
         </div>
       )}
       {currentWorld === "graph" && (
@@ -802,8 +805,6 @@ export default function App() {
           <p>
             Root Vertex: {graphNodes.length > 0 ? graphNodes[0] : "None"}
           </p>
-          <p>XP: {xp}</p>
-          <p>Level: {level}</p>
         </div>
       )}
       {currentWorld === "heap" && (
@@ -830,8 +831,6 @@ export default function App() {
           <p>Root: {heap.length > 0 ? heap[0] : "None"}</p>
           <p>Height: {Math.ceil(Math.log2(heap.length + 1))}</p>
           <p>Type: {heapType === "min" ? "Min Heap" : "Max Heap"}</p>
-          <p>XP: {xp}</p>
-          <p>Level: {level}</p>
         </div>
       )}
 
@@ -1441,177 +1440,237 @@ export default function App() {
         </>
       )}
 
-      <div
-        style={{
-          position: "absolute",
-          top: "18px",
-          left: "50%",
-          transform: "translateX(-50%)",
-          display: "flex",
-          flexDirection: "row",
-          gap: "12px",
-          zIndex: 300,
-          padding: "10px 12px",
-          borderRadius: "999px",
-          background: "rgba(15,23,42,0.72)",
-          backdropFilter: "blur(14px)",
-          boxShadow: "0 10px 35px rgba(0,0,0,0.35)",
-          border: "1px solid rgba(255,255,255,0.08)",
-        }}
-      >
-        <button
-          onClick={() =>
-            switchWorld("tree", "ENTERING TREE NEXUS")
-          }
+      {gameStarted && (
+        <div
           style={{
-            padding: "12px 18px",
+            position: "absolute",
+            top: "12px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            display: "flex",
+            flexDirection: "row",
+            gap: "6px",
+            zIndex: 300,
+            padding: "8px 10px",
             borderRadius: "999px",
-            border: "none",
-            background:
-              currentWorld === "tree"
-                ? "#14b8a6"
-                : "#1e293b",
-            color: "white",
-            cursor: "pointer",
-            fontWeight: "bold",
-            minWidth: "120px",
-            fontSize: "16px",
-            letterSpacing: "1px",
-            transition: "all 0.25s ease",
-            boxShadow:
-              currentWorld === "tree"
-                ? "0 0 20px rgba(20,184,166,0.6)"
-                : "none",
+            background: "rgba(15,23,42,0.72)",
+            backdropFilter: "blur(14px)",
+            boxShadow: "0 10px 35px rgba(0,0,0,0.35)",
+            border: "1px solid rgba(255,255,255,0.08)",
+            maxWidth: "90vw",
+            overflowX: "auto",
+            overflowY: "hidden",
+            whiteSpace: "nowrap",
           }}
         >
-          🌳 Tree
-        </button>
-        <button
-          onClick={() =>
-            switchWorld("stack", "ENTERING STACK KINGDOM")
-          }
-          style={{
-            padding: "12px 18px",
-            borderRadius: "999px",
-            border: "none",
-            background:
-              currentWorld === "stack"
-                ? "#22d3ee"
-                : "#1e293b",
-            color: "white",
-            cursor: "pointer",
-            fontWeight: "bold",
-            minWidth: "120px",
-            fontSize: "16px",
-            letterSpacing: "1px",
-            transition: "all 0.25s ease",
-            boxShadow:
-              currentWorld === "stack"
-                ? "0 0 20px rgba(34,211,238,0.6)"
-                : "none",
-          }}
-        >
-          📚 Stack
-        </button>
-        <button
-          onClick={() =>
-            switchWorld("queue", "ENTERING QUEUE CITY")
-          }
-          style={{
-            padding: "12px 18px",
-            borderRadius: "999px",
-            border: "none",
-            background:
-              currentWorld === "queue"
-                ? "#a855f7"
-                : "#1e293b",
-            color: "white",
-            cursor: "pointer",
-            fontWeight: "bold",
-            minWidth: "120px",
-            fontSize: "16px",
-            letterSpacing: "1px",
-            transition: "all 0.25s ease",
-            boxShadow:
-              currentWorld === "queue"
-                ? "0 0 20px rgba(168,85,247,0.6)"
-                : "none",
-          }}
-        >
-          📬 Queue
-        </button>
-        <button
-          onClick={() =>
-            switchWorld("graph", "ENTERING GRAPH REALM")
-          }
-          style={{
-            padding: "12px 18px",
-            borderRadius: "999px",
-            border: "none",
-            background:
-              currentWorld === "graph"
-                ? "#6366f1"
-                : "#1e293b",
-            color: "white",
-            cursor: "pointer",
-            fontWeight: "bold",
-            minWidth: "120px",
-            fontSize: "16px",
-            letterSpacing: "1px",
-            boxShadow:
-              currentWorld === "graph"
-                ? "0 0 20px rgba(99,102,241,0.6)"
-                : "none",
-          }}
-        >
-          🌐 Graph
-        </button>
-        <button
-          onClick={() =>
-            switchWorld("heap", "ENTERING HEAP CITADEL")
-          }
-          style={{
-            padding: "12px 18px",
-            borderRadius: "999px",
-            border: "none",
-            background:
-              currentWorld === "heap"
-                ? "#f97316"
-                : "#1e293b",
-            color: "white",
-            cursor: "pointer",
-            fontWeight: "bold",
-            minWidth: "120px",
-            fontSize: "16px",
-            letterSpacing: "1px",
-            boxShadow:
-              currentWorld === "heap"
-                ? "0 0 20px rgba(249,115,22,0.6)"
-                : "none",
-          }}
-        >
-          🌋 Heap
-        </button>
-        <button
-          onClick={() => setShowAchievements(true)}
-          style={{
-            padding: "12px 18px",
-            borderRadius: "999px",
-            border: "none",
-            background: "#f59e0b",
-            color: "white",
-            cursor: "pointer",
-            fontWeight: "bold",
-            minWidth: "120px",
-            boxShadow:
-              "0 0 20px rgba(245,158,11,0.35)",
-            fontSize: "16px",
-            letterSpacing: "1px",
-          }}
-        >
-          🏆 Awards
-        </button>
-      </div>
+          <div
+            style={{
+              minWidth: "160px",
+              padding: "8px 14px",
+              borderRadius: "999px",
+              background: "rgba(34,211,238,0.08)",
+              border: "1px solid rgba(34,211,238,0.15)",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                color: "white",
+                fontSize: "12px",
+                fontWeight: "bold",
+                marginBottom: "4px",
+              }}
+            >
+              <span>{rank}</span>
+              <span>Lv.{level}</span>
+            </div>
+
+            <div
+              style={{
+                height: "6px",
+                background: "rgba(255,255,255,0.08)",
+                borderRadius: "999px",
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  width: `${Math.min((xp % 500) / 5, 100)}%`,
+                  height: "100%",
+                  background: "linear-gradient(90deg,#22d3ee,#6366f1)",
+                  transition: "width 0.35s ease",
+                }}
+              />
+            </div>
+            <div
+              style={{
+                textAlign: "center",
+                color: "#94a3b8",
+                fontSize: "10px",
+                marginTop: "3px",
+              }}
+            >
+              {xp} XP
+            </div>
+          </div>
+          <button
+            onClick={() =>
+              switchWorld("tree", "ENTERING TREE NEXUS")
+            }
+            style={{
+              padding: "10px 14px",
+              borderRadius: "999px",
+              border: "none",
+              background:
+                currentWorld === "tree"
+                  ? "#14b8a6"
+                  : "#1e293b",
+              color: "white",
+              cursor: "pointer",
+              fontWeight: "bold",
+              minWidth: "88px",
+              fontSize: "14px",
+              letterSpacing: "1px",
+              transition: "all 0.25s ease",
+              boxShadow:
+                currentWorld === "tree"
+                  ? "0 0 20px rgba(20,184,166,0.6)"
+                  : "none",
+            }}
+          >
+            🌳 Tree
+          </button>
+          <button
+            onClick={() =>
+              switchWorld("stack", "ENTERING STACK KINGDOM")
+            }
+            style={{
+              padding: "10px 14px",
+              borderRadius: "999px",
+              border: "none",
+              background:
+                currentWorld === "stack"
+                  ? "#22d3ee"
+                  : "#1e293b",
+              color: "white",
+              cursor: "pointer",
+              fontWeight: "bold",
+              minWidth: "88px",
+              fontSize: "14px",
+              letterSpacing: "1px",
+              transition: "all 0.25s ease",
+              boxShadow:
+                currentWorld === "stack"
+                  ? "0 0 20px rgba(34,211,238,0.6)"
+                  : "none",
+            }}
+          >
+            📚 Stack
+          </button>
+          <button
+            onClick={() =>
+              switchWorld("queue", "ENTERING QUEUE CITY")
+            }
+            style={{
+              padding: "10px 14px",
+              borderRadius: "999px",
+              border: "none",
+              background:
+                currentWorld === "queue"
+                  ? "#a855f7"
+                  : "#1e293b",
+              color: "white",
+              cursor: "pointer",
+              fontWeight: "bold",
+              minWidth: "88px",
+              fontSize: "14px",
+              letterSpacing: "1px",
+              transition: "all 0.25s ease",
+              boxShadow:
+                currentWorld === "queue"
+                  ? "0 0 20px rgba(168,85,247,0.6)"
+                  : "none",
+            }}
+          >
+            📬 Queue
+          </button>
+          <button
+            onClick={() =>
+              switchWorld("graph", "ENTERING GRAPH REALM")
+            }
+            style={{
+              padding: "10px 14px",
+              borderRadius: "999px",
+              border: "none",
+              background:
+                currentWorld === "graph"
+                  ? "#6366f1"
+                  : "#1e293b",
+              color: "white",
+              cursor: "pointer",
+              fontWeight: "bold",
+              minWidth: "88px",
+              fontSize: "14px",
+              letterSpacing: "1px",
+              boxShadow:
+                currentWorld === "graph"
+                  ? "0 0 20px rgba(99,102,241,0.6)"
+                  : "none",
+            }}
+          >
+            🌐 Graph
+          </button>
+          <button
+            onClick={() =>
+              switchWorld("heap", "ENTERING HEAP CITADEL")
+            }
+            style={{
+              padding: "10px 14px",
+              borderRadius: "999px",
+              border: "none",
+              background:
+                currentWorld === "heap"
+                  ? "#f97316"
+                  : "#1e293b",
+              color: "white",
+              cursor: "pointer",
+              fontWeight: "bold",
+              minWidth: "88px",
+              fontSize: "14px",
+              letterSpacing: "1px",
+              boxShadow:
+                currentWorld === "heap"
+                  ? "0 0 20px rgba(249,115,22,0.6)"
+                  : "none",
+            }}
+          >
+            🌋 Heap
+          </button>
+          <button
+            onClick={() => setShowAchievements(true)}
+            style={{
+              padding: "10px 14px",
+              borderRadius: "999px",
+              border: "none",
+              background: "#f59e0b",
+              color: "white",
+              cursor: "pointer",
+              fontWeight: "bold",
+              minWidth: "88px",
+              boxShadow:
+                "0 0 20px rgba(245,158,11,0.35)",
+              fontSize: "14px",
+              letterSpacing: "1px",
+            }}
+          >
+            🏆 Awards
+          </button>
+        </div>
+      )}
 
       <div
         style={{
@@ -1793,6 +1852,18 @@ export default function App() {
                 }
                 to {
                   opacity: 1;
+                }
+              }
+
+              @keyframes levelUpAppear {
+                from {
+                  opacity: 0;
+                  transform: scale(0.8);
+                }
+
+                to {
+                  opacity: 1;
+                  transform: scale(1);
                 }
               }
             `}
