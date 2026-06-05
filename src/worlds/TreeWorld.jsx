@@ -94,8 +94,9 @@ export default function TreeWorld({
 }) {
   const treeLayout = useMemo(() => {
     return nodes
-      .filter((value) => value !== undefined && value !== null)
       .map((value, index) => {
+        if (value === undefined || value === null) return null;
+
         const level = Math.floor(Math.log2(index + 1));
         const levelStart = Math.pow(2, level) - 1;
         const positionInLevel = index - levelStart;
@@ -112,9 +113,11 @@ export default function TreeWorld({
 
         return {
           value,
+          index,
           position: [x, y, 0],
         };
-      });
+      })
+      .filter(Boolean);
   }, [nodes]);
   return (
     <Canvas
@@ -146,15 +149,20 @@ export default function TreeWorld({
         />
       ))}
 
-      {treeLayout.map((node, index) => {
-        if (index === 0) return null;
+      {treeLayout.map((node) => {
+        if (node.index === 0) return null;
 
-        const parentIndex = Math.floor((index - 1) / 2);
+        const parentArrayIndex = Math.floor((node.index - 1) / 2);
+        const parentNode = treeLayout.find(
+          (n) => n.index === parentArrayIndex
+        );
+
+        if (!parentNode) return null;
 
         return (
           <Branch
-            key={`branch-${index}`}
-            start={treeLayout[parentIndex].position}
+            key={`branch-${node.index}`}
+            start={parentNode.position}
             end={node.position}
           />
         );
