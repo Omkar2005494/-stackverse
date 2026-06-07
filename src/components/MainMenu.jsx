@@ -5,6 +5,7 @@ import QueuePreview from "./QueuePreview";
 import TreePreview from "./TreePreview";
 import GraphPreview from "./GraphPreview";
 import HeapPreview from "./HeapPreview";
+import LinkedListPreview from "./LinkedListPreview";
 
 export default function MainMenu({ onStart, graphPreview }) {
   const [loading, setLoading] = useState(false);
@@ -113,29 +114,49 @@ export default function MainMenu({ onStart, graphPreview }) {
           alignItems: "center",
           textAlign: "center",
           maxWidth: "900px",
+          overflow: "visible",
         }}
       >
-        <p
+        <div
           style={{
-            color: "#22d3ee",
-            letterSpacing: "4px",
-            fontSize: "15px",
-            marginBottom: "24px",
-            textTransform: "uppercase",
+            position: "absolute",
+            top: "-40px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            width: "900px",
+            height: "320px",
+            pointerEvents: "none",
+            opacity: 0.6,
+            filter: "drop-shadow(0 0 12px rgba(34,211,238,0.5))",
+            zIndex: -1,
           }}
         >
-          3D Gamified DSA Experience
-        </p>
+          <svg width="100%" height="100%" viewBox="0 0 700 260">
+            <line x1="120" y1="120" x2="260" y2="70" stroke="#22d3ee" strokeWidth="2" />
+            <line x1="260" y1="70" x2="420" y2="120" stroke="#22d3ee" strokeWidth="2" />
+            <line x1="420" y1="120" x2="560" y2="60" stroke="#22d3ee" strokeWidth="2" />
+            <line x1="260" y1="70" x2="340" y2="190" stroke="#22d3ee" strokeWidth="2" />
+            <line x1="420" y1="120" x2="340" y2="190" stroke="#22d3ee" strokeWidth="2" />
+
+            <circle cx="120" cy="120" r="8" fill="#22d3ee" />
+            <circle cx="260" cy="70" r="8" fill="#22d3ee" />
+            <circle cx="420" cy="120" r="8" fill="#22d3ee" />
+            <circle cx="560" cy="60" r="8" fill="#22d3ee" />
+            <circle cx="340" cy="190" r="8" fill="#22d3ee" />
+          </svg>
+        </div>
 
         <h1
           style={{
-            fontSize: "clamp(52px, 8vw, 84px)",
+            fontSize: "clamp(72px, 9vw, 130px)",
             lineHeight: 0.95,
             margin: 0,
-            color: "white",
             fontWeight: 900,
-            textShadow: "0 0 40px rgba(34,211,238,0.35)",
-            letterSpacing: "6px",
+            letterSpacing: "8px",
+            background: "linear-gradient(180deg,#9be7ff,#22d3ee,#38bdf8)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            textShadow: "0 0 40px rgba(34,211,238,0.6)",
             animation: "titleReveal 1.2s ease forwards",
           }}
         >
@@ -144,20 +165,55 @@ export default function MainMenu({ onStart, graphPreview }) {
 
         <p
           style={{
-            marginTop: "36px",
-            color: "rgba(255,255,255,0.72)",
-            fontSize: "22px",
-            lineHeight: 1.8,
-            maxWidth: "480px",
+            marginTop: "14px",
+            marginBottom: "0px",
+            fontSize: "14px",
+            letterSpacing: "6px",
+            textTransform: "uppercase",
+            color: "rgba(255,255,255,0.6)",
           }}
         >
-          Explore ancient ruins, futuristic cities and algorithmic realms while mastering real data structures and algorithms.
+          Build • Learn • Conquer
         </p>
+
+        <p
+          style={{
+            marginTop: "40px",
+            color: "rgba(255,255,255,0.92)",
+            fontSize: "28px",
+            lineHeight: 1.5,
+            maxWidth: "900px",
+            textAlign: "center",
+          }}
+        >
+          <>
+            Master Data Structures & Algorithms
+            <br />
+            Through Interactive Worlds
+          </>
+        </p>
+
+        <div
+          style={{
+            display: "flex",
+            gap: "32px",
+            marginTop: "24px",
+            color: "#7dd3fc",
+            fontWeight: "600",
+            flexWrap: "wrap",
+            justifyContent: "center",
+          }}
+        >
+          <span>🎮 6 Worlds</span>
+          <span>⚡ XP System</span>
+          <span>🌳 Visual Learning</span>
+          <span>🏆 Achievements</span>
+        </div>
 
         <div
           onClick={handleStart}
           style={{
-            marginTop: "70px",
+            marginTop: "40px",
             display: "inline-flex",
             alignItems: "center",
             gap: "18px",
@@ -223,6 +279,23 @@ export default function MainMenu({ onStart, graphPreview }) {
           👤 Adventurer Profile
         </div>
 
+        <div
+          style={{
+            marginTop: "30px",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            color: "rgba(255,255,255,0.6)",
+            letterSpacing: "3px",
+            fontSize: "12px",
+            textTransform: "uppercase",
+            animation: "corePulse 2s infinite alternate",
+          }}
+        >
+          <div style={{ fontSize: "22px", marginBottom: "8px" }}>↓</div>
+          Explore The Six Worlds
+        </div>
+
       </div>
 
       <div
@@ -244,7 +317,10 @@ export default function MainMenu({ onStart, graphPreview }) {
           onMouseLeave={() => setHoveredCard(null)}
           style={{
             width: "320px",
-            minHeight: "320px",
+            height: "500px",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
             padding: "28px",
             borderRadius: "26px",
             background: "rgba(15,23,42,0.78)",
@@ -319,7 +395,10 @@ export default function MainMenu({ onStart, graphPreview }) {
           onMouseLeave={() => setHoveredCard(null)}
           style={{
             width: "320px",
-            minHeight: "320px",
+            height: "500px",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
             padding: "28px",
             borderRadius: "26px",
             background: "rgba(15,23,42,0.78)",
@@ -393,7 +472,10 @@ export default function MainMenu({ onStart, graphPreview }) {
           onMouseLeave={() => setHoveredCard(null)}
           style={{
             width: "320px",
-            minHeight: "320px",
+            height: "500px",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
             padding: "28px",
             borderRadius: "26px",
             background: "rgba(15,23,42,0.78)",
@@ -468,7 +550,10 @@ export default function MainMenu({ onStart, graphPreview }) {
   onMouseLeave={() => setHoveredCard(null)}
   style={{
     width: "320px",
-    minHeight: "320px",
+    height: "500px",
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "space-between",
     padding: "28px",
     borderRadius: "26px",
     background: "rgba(15,23,42,0.78)",
@@ -538,12 +623,15 @@ export default function MainMenu({ onStart, graphPreview }) {
     <span>GRAPH ENGINE</span>
   </div>
 </div>
-<div
+        <div
   onMouseEnter={() => setHoveredCard("heap")}
   onMouseLeave={() => setHoveredCard(null)}
   style={{
     width: "320px",
-    minHeight: "320px",
+    height: "500px",
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "space-between",
     padding: "28px",
     borderRadius: "26px",
     background: "rgba(15,23,42,0.78)",
@@ -612,7 +700,85 @@ export default function MainMenu({ onStart, graphPreview }) {
     <span>DIFFICULTY: EXPERT</span>
     <span>HEAP ENGINE</span>
   </div>
-</div>
+        </div>
+        <div
+          onMouseEnter={() => setHoveredCard("linkedlist")}
+          onMouseLeave={() => setHoveredCard(null)}
+          style={{
+            width: "320px",
+            height: "500px",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+            padding: "28px",
+            borderRadius: "26px",
+            background: "rgba(15,23,42,0.78)",
+            border:
+              hoveredCard === "linkedlist"
+                ? "1px solid rgba(34,197,94,0.9)"
+                : "1px solid rgba(34,197,94,0.28)",
+            backdropFilter: "blur(18px)",
+            boxShadow:
+              hoveredCard === "linkedlist"
+                ? "0 0 70px rgba(34,197,94,0.4)"
+                : "0 0 45px rgba(34,197,94,0.14)",
+            transition: "all 0.35s ease",
+            cursor: "pointer",
+            transform:
+              hoveredCard === "linkedlist"
+                ? "translateY(-10px) scale(1.02)"
+                : "translateY(0px)",
+            animation: "titleReveal 2.6s ease forwards",
+          }}
+        >
+          <p
+            style={{
+              color: "#22c55e",
+              letterSpacing: "3px",
+              fontSize: "14px",
+              textTransform: "uppercase",
+            }}
+          >
+            World 06
+          </p>
+
+          <h2
+            style={{
+              color: "white",
+              fontSize: "42px",
+              marginTop: "12px",
+              marginBottom: "18px",
+            }}
+          >
+            Linked List Forest
+          </h2>
+
+          <p
+            style={{
+              color: "rgba(255,255,255,0.72)",
+              lineHeight: 1.8,
+              fontSize: "17px",
+            }}
+          >
+            Master singly, doubly and circular linked lists through interactive traversal, reversal and search mechanics.
+          </p>
+
+          <LinkedListPreview />
+
+          <div
+            style={{
+              marginTop: "24px",
+              display: "flex",
+              justifyContent: "space-between",
+              color: "rgba(255,255,255,0.55)",
+              fontSize: "14px",
+              letterSpacing: "2px",
+            }}
+          >
+            <span>DIFFICULTY: ADVANCED</span>
+            <span>LINKED LIST ENGINE</span>
+          </div>
+        </div>
       </div>
       <ProfileModal
         isOpen={showProfile}

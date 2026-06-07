@@ -7,6 +7,7 @@ import QueueWorld from "./worlds/QueueWorld";
 import TreeWorld from "./worlds/TreeWorld";
 import GraphWorld from "./worlds/GraphWorld";
 import HeapWorld from "./worlds/HeapWorld";
+import LinkedListWorld from "./worlds/LinkedListWorld";
 import HUD from "./components/HUD";
 import Controls from "./components/Controls";
 import LevelPopup from "./components/LevelPopup";
@@ -786,6 +787,8 @@ export default function App() {
           shortestPath={shortestPath}
           highlightedNode={highlightedNode}
         />
+      ) : currentWorld === "linkedlist" ? (
+        <LinkedListWorld addXP={addXP} />
       ) : (
         <HeapWorld
           heap={heap}
@@ -1628,6 +1631,36 @@ export default function App() {
             }}
           >
             🌳 Tree
+          </button>
+          <button
+            onClick={() =>
+              switchWorld(
+                "linkedlist",
+                "ENTERING LINKED LIST FOREST"
+              )
+            }
+            style={{
+              padding: "10px 14px",
+              borderRadius: "999px",
+              border: "none",
+              background:
+                currentWorld === "linkedlist"
+                  ? "#22c55e"
+                  : "#1e293b",
+              color: "white",
+              cursor: "pointer",
+              fontWeight: "bold",
+              minWidth: "88px",
+              fontSize: "14px",
+              letterSpacing: "1px",
+              transition: "all 0.25s ease",
+              boxShadow:
+                currentWorld === "linkedlist"
+                  ? "0 0 20px rgba(34,197,94,0.6)"
+                  : "none",
+            }}
+          >
+            🌲 Linked List
           </button>
           <button
             onClick={() =>
