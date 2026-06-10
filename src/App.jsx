@@ -776,10 +776,22 @@ export default function App() {
       ) : currentWorld === "queue" ? (
         <QueueWorld queue={queue} />
       ) : currentWorld === "tree" ? (
-        <TreeWorld
-          nodes={treeNodes}
-          highlightedNode={highlightedNode}
-        />
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            width: '100vw',
+            height: '100vh',
+            zIndex: 1,
+            background: '#020617',
+          }}
+        >
+          {console.log('APP TREE NODES:', treeNodes)}
+          <TreeWorld
+            nodes={treeNodes}
+            highlightedNode={highlightedNode}
+          />
+        </div>
       ) : currentWorld === "graph" ? (
         <GraphWorld
           nodes={graphNodes}
@@ -842,31 +854,34 @@ export default function App() {
       )}
 
       {currentWorld === "tree" && (
-        <div
-          style={{
-            position: "absolute",
-            top: "90px",
-            left: "20px",
-            zIndex: 300,
-            padding: "18px",
-            borderRadius: "18px",
-            background: "rgba(15,23,42,0.82)",
-            backdropFilter: "blur(12px)",
-            border: "1px solid rgba(20,184,166,0.2)",
-            color: "white",
-            minWidth: "220px",
-          }}
-        >
-          <h3 style={{ margin: 0, color: "#14b8a6" }}>
-            TREE NEXUS
-          </h3>
-          <p>Height: {Math.ceil(Math.log2(treeNodes.length + 1))}</p>
-          <p>Type: BST</p>
-          <p>Nodes: {treeNodes.length}</p>
-          <p>
-            Root: {treeNodes.length > 0 ? treeNodes[0] : "None"}
-          </p>
-        </div>
+        <>
+          {console.log('TREE STATS NODES:', treeNodes)}
+          <div
+            style={{
+              position: "absolute",
+              top: "110px",
+              left: "20px",
+              zIndex: 300,
+              padding: "14px",
+              borderRadius: "18px",
+              background: "rgba(15,23,42,0.82)",
+              backdropFilter: "blur(12px)",
+              border: "1px solid rgba(20,184,166,0.2)",
+              color: "white",
+              minWidth: "180px",
+            }}
+          >
+            <h3 style={{ margin: 0, color: "#14b8a6" }}>
+              TREE NEXUS
+            </h3>
+            <p>Height: {Math.ceil(Math.log2(treeNodes.length + 1))}</p>
+            <p>Type: BST</p>
+            <p>Nodes: {treeNodes.length}</p>
+            <p>
+              Root: {treeNodes.length > 0 ? treeNodes[0] : "None"}
+            </p>
+          </div>
+        </>
       )}
       {currentWorld === "graph" && (
         <div
@@ -983,12 +998,16 @@ export default function App() {
                   transform: "translateX(-50%)",
                   display: "flex",
                   gap: "18px",
+                  flexWrap: "nowrap",
+                  whiteSpace: "nowrap",
+                  overflowX: "auto",
                   zIndex: 300,
                   padding: "18px",
                   background: "rgba(15,23,42,0.82)",
                   borderRadius: "22px",
                   backdropFilter: "blur(12px)",
                   border: "1px solid rgba(255,255,255,0.08)",
+                  minWidth: "fit-content",
                 }}
               >
                 <input

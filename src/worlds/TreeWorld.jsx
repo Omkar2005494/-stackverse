@@ -1,6 +1,6 @@
 import { Canvas } from "@react-three/fiber";
 import { useMemo, useEffect, useState } from "react";
-import { OrbitControls, Float, Text } from "@react-three/drei";
+import { OrbitControls, Text } from "@react-three/drei";
 
 function TreeNode({
   position,
@@ -19,42 +19,40 @@ function TreeNode({
   }, [index]);
 
   return (
-    <Float speed={2} rotationIntensity={0.2} floatIntensity={0.4}>
-      <group position={position}>
-        <mesh
-          scale={
-            highlighted
-              ? 1.28
-              : spawned
-              ? 1
-              : 0
-          }
-        >
-          <sphereGeometry args={[0.6, 32, 32]} />
+    <group position={position}>
+      <mesh
+        scale={
+          highlighted
+            ? 1.35
+            : spawned
+            ? 1
+            : 0.01
+        }
+      >
+        <sphereGeometry args={[0.85, 32, 32]} />
 
-          <meshStandardMaterial
-            color={highlighted ? "#67e8f9" : "#0891b2"}
-            emissive="#22d3ee"
-            emissiveIntensity={highlighted ? 5 : 1.8}
-            metalness={0.35}
-            roughness={0.3}
-          />
-        </mesh>
+        <meshStandardMaterial
+          color={highlighted ? "#a5f3fc" : "#22d3ee"}
+          emissive="#22d3ee"
+          emissiveIntensity={highlighted ? 6 : 2}
+          metalness={0.35}
+          roughness={0.3}
+        />
+      </mesh>
 
-        <Text
-          position={[0, 0, 1.15]}
-          fontSize={0.42}
-          color="#ffffff"
-          anchorX="center"
-          anchorY="middle"
-          outlineWidth={0.03}
-          outlineColor="#000000"
-          renderOrder={10}
-        >
-          {String(value)}
-        </Text>
-      </group>
-    </Float>
+      <Text
+        position={[0, 0, 1.05]}
+        fontSize={0.65}
+        color="#ffffff"
+        anchorX="center"
+        anchorY="middle"
+        outlineWidth={0.03}
+        outlineColor="#000000"
+        renderOrder={10}
+      >
+        {String(value)}
+      </Text>
+    </group>
   );
 }
 
@@ -77,12 +75,12 @@ function Branch({ start, end }) {
       position={mid}
       rotation={[0, 0, -angle]}
     >
-      <boxGeometry args={[0.12, length, 0.12]} />
+      <boxGeometry args={[0.16, length, 0.16]} />
 
       <meshStandardMaterial
         color="#67e8f9"
         emissive="#22d3ee"
-        emissiveIntensity={2}
+        emissiveIntensity={3}
       />
     </mesh>
   );
@@ -105,14 +103,14 @@ export default function TreeWorld({
         const positionInLevel = index - levelStart;
         const nodesInLevel = Math.pow(2, level);
 
-        const spread = Math.max(1.5, 8 / Math.pow(2, level));
+        const spread = 4.2;
+
+        const y = 3.5 - level * 2.4;
 
         const x =
           (positionInLevel - (nodesInLevel - 1) / 2) *
           spread *
           2;
-
-        const y = 5 - level * 3;
 
         return {
           value,
@@ -122,28 +120,27 @@ export default function TreeWorld({
       })
       .filter(Boolean);
   }, [nodes]);
+
   return (
     <Canvas
       camera={{
-        position: isMobile ? [0, 1, 15] : [0, 2, 12],
-        fov: isMobile ? 65 : 55,
+        position: [0, 2, 12],
+        fov: 55,
       }}
       style={{
         width: "100%",
         height: "100%",
-        background:
-          "radial-gradient(circle, #0f172a 0%, #020617 100%)",
+        background: "#020617",
       }}
     >
-      <ambientLight intensity={1} />
+      <ambientLight intensity={2.5} />
 
       <directionalLight
         position={[5, 10, 5]}
-        intensity={4}
-        color="#22d3ee"
+        intensity={5}
+        color="#ffffff"
       />
-
-      <fog attach="fog" args={["#020617", 12, 24]} />
+      <pointLight position={[0, 3, 4]} intensity={10} color="#22d3ee" />
 
       {treeLayout.map((node, index) => (
         <TreeNode
@@ -174,32 +171,15 @@ export default function TreeWorld({
         );
       })}
 
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -5, 0]}>
-        <planeGeometry args={[40, 40]} />
-
-        <meshStandardMaterial
-          color="#020617"
-          metalness={0.2}
-          roughness={0.8}
-        />
-      </mesh>
-
-      <mesh position={[0, -4.95, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[2, 4, 64]} />
-
-        <meshStandardMaterial
-          color="#22d3ee"
-          emissive="#22d3ee"
-          emissiveIntensity={2}
-          side={2}
-        />
-      </mesh>
-
       <OrbitControls
+        target={[0, 0, 0]}
         enablePan={false}
-        minDistance={isMobile ? 10 : 8}
-        maxDistance={isMobile ? 18 : 16}
-        enableDamping
+        enableRotate={true}
+        enableZoom={true}
+        minDistance={8}
+        maxDistance={18}
+        minPolarAngle={Math.PI / 4}
+        maxPolarAngle={Math.PI / 2}
       />
     </Canvas>
   );
