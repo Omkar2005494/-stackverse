@@ -92,6 +92,9 @@ export default function TreeWorld({
   nodes = [10, 5, 15],
   highlightedNode,
 }) {
+  const isMobile =
+    typeof window !== "undefined" && window.innerWidth < 768;
+
   const treeLayout = useMemo(() => {
     return nodes
       .map((value, index) => {
@@ -121,10 +124,13 @@ export default function TreeWorld({
   }, [nodes]);
   return (
     <Canvas
-      camera={{ position: [0, 2, 12], fov: 55 }}
+      camera={{
+        position: isMobile ? [0, 1, 15] : [0, 2, 12],
+        fov: isMobile ? 65 : 55,
+      }}
       style={{
-        width: "100vw",
-        height: "100vh",
+        width: "100%",
+        height: "100%",
         background:
           "radial-gradient(circle, #0f172a 0%, #020617 100%)",
       }}
@@ -191,8 +197,9 @@ export default function TreeWorld({
 
       <OrbitControls
         enablePan={false}
-        minDistance={8}
-        maxDistance={16}
+        minDistance={isMobile ? 10 : 8}
+        maxDistance={isMobile ? 18 : 16}
+        enableDamping
       />
     </Canvas>
   );

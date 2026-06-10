@@ -1,22 +1,27 @@
-
-
 export default function Controls({ pushBlock, popBlock }) {
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
   return (
     <div
       style={{
         position: "absolute",
-        top: 30,
-        left: 30,
+        top: isMobile ? "auto" : 30,
+        bottom: isMobile ? 20 : "auto",
+        left: isMobile ? "50%" : 30,
+        transform: isMobile ? "translateX(-50%)" : "none",
         display: "flex",
-        gap: "12px",
+        gap: isMobile ? "10px" : "12px",
         alignItems: "center",
+        flexWrap: "wrap",
+        justifyContent: "center",
+        width: isMobile ? "90%" : "auto",
+        zIndex: 100,
       }}
     >
       <button
         onClick={pushBlock}
         style={{
-          padding: "14px 28px",
-          fontSize: "18px",
+          padding: isMobile ? "12px 20px" : "14px 28px",
+          fontSize: isMobile ? "16px" : "18px",
           cursor: "pointer",
           borderRadius: "14px",
           border: "none",
@@ -32,8 +37,8 @@ export default function Controls({ pushBlock, popBlock }) {
       <button
         onClick={popBlock}
         style={{
-          padding: "14px 28px",
-          fontSize: "18px",
+          padding: isMobile ? "12px 20px" : "14px 28px",
+          fontSize: isMobile ? "16px" : "18px",
           cursor: "pointer",
           borderRadius: "14px",
           border: "none",
