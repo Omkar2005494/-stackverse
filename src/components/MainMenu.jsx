@@ -11,6 +11,7 @@ export default function MainMenu({ onStart, graphPreview }) {
   const [loading, setLoading] = useState(false);
   const [hoveredCard, setHoveredCard] = useState(null);
   const [showProfile, setShowProfile] = useState(false);
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
 
   const handleStart = () => {
     setLoading(true);
@@ -33,7 +34,7 @@ export default function MainMenu({ onStart, graphPreview }) {
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "flex-start",
-        padding: "70px 40px 120px",
+        padding: isMobile ? "40px 16px 80px" : "70px 40px 120px",
         zIndex: 999,
       }}
     >
@@ -148,7 +149,7 @@ export default function MainMenu({ onStart, graphPreview }) {
 
         <h1
           style={{
-            fontSize: "clamp(72px, 9vw, 130px)",
+            fontSize: isMobile ? "48px" : "clamp(72px, 9vw, 130px)",
             lineHeight: 0.95,
             margin: 0,
             fontWeight: 900,
@@ -180,7 +181,7 @@ export default function MainMenu({ onStart, graphPreview }) {
           style={{
             marginTop: "40px",
             color: "rgba(255,255,255,0.92)",
-            fontSize: "28px",
+            fontSize: isMobile ? "18px" : "28px",
             lineHeight: 1.5,
             maxWidth: "900px",
             textAlign: "center",
@@ -298,26 +299,27 @@ export default function MainMenu({ onStart, graphPreview }) {
 
       </div>
 
-      <div
-        style={{
-          position: "relative",
-          zIndex: 2,
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "stretch",
-          flexWrap: "wrap",
-          gap: "28px",
-          width: "100%",
-          maxWidth: "1200px",
-          marginTop: "60px",
-        }}
-      >
+        <div
+          style={{
+            position: "relative",
+            zIndex: 2,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "stretch",
+            flexWrap: "wrap",
+            gap: isMobile ? "16px" : "28px",
+            width: "100%",
+            maxWidth: "1200px",
+            marginTop: "60px",
+          }}
+        >
         <div
           onMouseEnter={() => setHoveredCard("stack")}
           onMouseLeave={() => setHoveredCard(null)}
           style={{
-            width: "320px",
-            height: "500px",
+            width: isMobile ? "100%" : "320px",
+            maxWidth: "320px",
+            height: isMobile ? "460px" : "500px",
             display: "flex",
             flexDirection: "column",
             justifyContent: "space-between",
@@ -356,7 +358,7 @@ export default function MainMenu({ onStart, graphPreview }) {
           <h2
             style={{
               color: "white",
-              fontSize: "42px",
+              fontSize: isMobile ? "30px" : "42px",
               marginTop: "12px",
               marginBottom: "18px",
             }}
@@ -368,7 +370,7 @@ export default function MainMenu({ onStart, graphPreview }) {
             style={{
               color: "rgba(255,255,255,0.72)",
               lineHeight: 1.8,
-              fontSize: "17px",
+              fontSize: isMobile ? "15px" : "17px",
             }}
           >
             Push and pop glowing cyber blocks while surviving overflow and underflow attacks.
@@ -394,8 +396,9 @@ export default function MainMenu({ onStart, graphPreview }) {
           onMouseEnter={() => setHoveredCard("queue")}
           onMouseLeave={() => setHoveredCard(null)}
           style={{
-            width: "320px",
-            height: "500px",
+            width: isMobile ? "100%" : "320px",
+            maxWidth: "320px",
+            height: isMobile ? "460px" : "500px",
             display: "flex",
             flexDirection: "column",
             justifyContent: "space-between",
@@ -434,7 +437,7 @@ export default function MainMenu({ onStart, graphPreview }) {
           <h2
             style={{
               color: "white",
-              fontSize: "42px",
+              fontSize: isMobile ? "30px" : "42px",
               marginTop: "12px",
               marginBottom: "18px",
             }}
@@ -446,7 +449,7 @@ export default function MainMenu({ onStart, graphPreview }) {
             style={{
               color: "rgba(255,255,255,0.72)",
               lineHeight: 1.8,
-              fontSize: "17px",
+              fontSize: isMobile ? "15px" : "17px",
             }}
           >
             Control futuristic traffic systems and master FIFO operations inside neon highways.
@@ -471,8 +474,9 @@ export default function MainMenu({ onStart, graphPreview }) {
           onMouseEnter={() => setHoveredCard("tree")}
           onMouseLeave={() => setHoveredCard(null)}
           style={{
-            width: "320px",
-            height: "500px",
+            width: isMobile ? "100%" : "320px",
+            maxWidth: "320px",
+            height: isMobile ? "460px" : "500px",
             display: "flex",
             flexDirection: "column",
             justifyContent: "space-between",
@@ -511,7 +515,7 @@ export default function MainMenu({ onStart, graphPreview }) {
           <h2
             style={{
               color: "white",
-              fontSize: "42px",
+              fontSize: isMobile ? "30px" : "42px",
               marginTop: "12px",
               marginBottom: "18px",
             }}
@@ -523,7 +527,7 @@ export default function MainMenu({ onStart, graphPreview }) {
             style={{
               color: "rgba(255,255,255,0.72)",
               lineHeight: 1.8,
-              fontSize: "17px",
+              fontSize: isMobile ? "15px" : "17px",
             }}
           >
             Explore holographic binary trees with glowing traversal systems and recursive cyber structures.
@@ -549,8 +553,9 @@ export default function MainMenu({ onStart, graphPreview }) {
   onMouseEnter={() => setHoveredCard("graph")}
   onMouseLeave={() => setHoveredCard(null)}
   style={{
-    width: "320px",
-    height: "500px",
+    width: isMobile ? "100%" : "320px",
+    maxWidth: "320px",
+    height: isMobile ? "460px" : "500px",
     display: "flex",
     flexDirection: "column",
     justifyContent: "space-between",
@@ -589,7 +594,7 @@ export default function MainMenu({ onStart, graphPreview }) {
   <h2
     style={{
       color: "white",
-      fontSize: "42px",
+      fontSize: isMobile ? "30px" : "42px",
       marginTop: "12px",
       marginBottom: "18px",
     }}
@@ -601,7 +606,7 @@ export default function MainMenu({ onStart, graphPreview }) {
     style={{
       color: "rgba(255,255,255,0.72)",
       lineHeight: 1.8,
-      fontSize: "17px",
+      fontSize: isMobile ? "15px" : "17px",
     }}
   >
     Master BFS, DFS and shortest-path exploration across dynamic connected networks.
@@ -627,8 +632,9 @@ export default function MainMenu({ onStart, graphPreview }) {
   onMouseEnter={() => setHoveredCard("heap")}
   onMouseLeave={() => setHoveredCard(null)}
   style={{
-    width: "320px",
-    height: "500px",
+    width: isMobile ? "100%" : "320px",
+    maxWidth: "320px",
+    height: isMobile ? "460px" : "500px",
     display: "flex",
     flexDirection: "column",
     justifyContent: "space-between",
@@ -667,7 +673,7 @@ export default function MainMenu({ onStart, graphPreview }) {
   <h2
     style={{
       color: "white",
-      fontSize: "42px",
+      fontSize: isMobile ? "30px" : "42px",
       marginTop: "12px",
       marginBottom: "18px",
     }}
@@ -679,7 +685,7 @@ export default function MainMenu({ onStart, graphPreview }) {
     style={{
       color: "rgba(255,255,255,0.72)",
       lineHeight: 1.8,
-      fontSize: "17px",
+      fontSize: isMobile ? "15px" : "17px",
     }}
   >
     Build min and max heaps, extract roots and master priority-based data organization.
@@ -705,8 +711,9 @@ export default function MainMenu({ onStart, graphPreview }) {
           onMouseEnter={() => setHoveredCard("linkedlist")}
           onMouseLeave={() => setHoveredCard(null)}
           style={{
-            width: "320px",
-            height: "500px",
+            width: isMobile ? "100%" : "320px",
+            maxWidth: "320px",
+            height: isMobile ? "460px" : "500px",
             display: "flex",
             flexDirection: "column",
             justifyContent: "space-between",
@@ -745,7 +752,7 @@ export default function MainMenu({ onStart, graphPreview }) {
           <h2
             style={{
               color: "white",
-              fontSize: "42px",
+              fontSize: isMobile ? "30px" : "42px",
               marginTop: "12px",
               marginBottom: "18px",
             }}
@@ -757,7 +764,7 @@ export default function MainMenu({ onStart, graphPreview }) {
             style={{
               color: "rgba(255,255,255,0.72)",
               lineHeight: 1.8,
-              fontSize: "17px",
+              fontSize: isMobile ? "15px" : "17px",
             }}
           >
             Master singly, doubly and circular linked lists through interactive traversal, reversal and search mechanics.
