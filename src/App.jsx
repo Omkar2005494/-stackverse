@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { signOut } from "firebase/auth";
 import { auth } from "./firebase/firebase";
+import MobileApp from "./mobile/MobileApp";
 
 import StackWorld from "./worlds/StackWorld";
 import QueueWorld from "./worlds/QueueWorld";
@@ -35,6 +36,7 @@ import { useGameProgress } from "./context/GameProgressContext";
 
 
 export default function App() {
+  const isMobile = window.innerWidth < 768;
   const {
     xp,
     level,
@@ -659,6 +661,9 @@ export default function App() {
     }
   };
 
+  if (isMobile) {
+    return <MobileApp />;
+  }
   if (authLoading || showSplash) {
     return (
       <div
@@ -757,6 +762,7 @@ export default function App() {
   if (!user) {
     return <Login />;
   }
+
 
   return (
     <>
