@@ -1,4 +1,3 @@
-
 import { motion } from 'framer-motion';
 
 export default function MobileHome({ onEnterWorld }) {
@@ -70,8 +69,14 @@ export default function MobileHome({ onEnterWorld }) {
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={() => {
-                if (world.name === 'Stack Kingdom' && onEnterWorld) {
+                if (!onEnterWorld) return;
+
+                if (world.name === 'Stack Kingdom') {
                   onEnterWorld('stack');
+                }
+
+                if (world.name === 'Queue City') {
+                  onEnterWorld('queue');
                 }
               }}
               style={{
