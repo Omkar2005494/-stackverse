@@ -19,6 +19,7 @@ import ComboPopup from "./components/ComboPopup";
 import FloatingXP from "./components/FloatingXP";
 import Shockwave from "./components/Shockwave";
 import MainMenu from "./components/MainMenu";
+import ComplexityVisualizer from "./components/ComplexityVisualizer";
 import Login from "./components/Login";
 import GraphPreview from "./components/GraphPreview";
 import { missions } from "./game/missions";
@@ -123,6 +124,10 @@ export default function App() {
   const [showAchievements, setShowAchievements] = useState(false);
   const [achievementPopup, setAchievementPopup] = useState(null);
   const [unlockedAchievements, setUnlockedAchievements] = useState([]);
+  const [actualSteps, setActualSteps] = useState(0);
+  const [currentOperation, setCurrentOperation] = useState("None");
+  const [timeComplexity, setTimeComplexity] = useState("-");
+  const [spaceComplexity, setSpaceComplexity] = useState("-");
   const powerMode = combo >= 5;
   const { user, authLoading } = useAuth();
   const [showSplash, setShowSplash] = useState(true);
@@ -576,6 +581,10 @@ export default function App() {
 
   const handleTreeBFS = async () => {
     const result = startBFS();
+    setCurrentOperation("BFS Traversal");
+    setTimeComplexity("O(n)");
+    setSpaceComplexity("O(n)");
+    setActualSteps(treeNodes.length);
 
     if (!Array.isArray(result) || !result.length) return;
 
@@ -592,6 +601,10 @@ export default function App() {
 
   const handleTreeDFS = async () => {
     const result = startDFS();
+    setCurrentOperation("DFS Traversal");
+    setTimeComplexity("O(n)");
+    setSpaceComplexity("O(log n)");
+    setActualSteps(treeNodes.length);
 
     if (!Array.isArray(result) || !result.length) return;
 
@@ -608,6 +621,10 @@ export default function App() {
 
   const handleTreeInorder = async () => {
     const result = startInorder();
+    setCurrentOperation("Inorder Traversal");
+    setTimeComplexity("O(n)");
+    setSpaceComplexity("O(log n)");
+    setActualSteps(treeNodes.length);
 
     if (!Array.isArray(result) || !result.length) return;
 
@@ -623,6 +640,10 @@ export default function App() {
 
   const handleTreePreorder = async () => {
     const result = startPreorder();
+    setCurrentOperation("Preorder Traversal");
+    setTimeComplexity("O(n)");
+    setSpaceComplexity("O(log n)");
+    setActualSteps(treeNodes.length);
 
     if (!Array.isArray(result) || !result.length) return;
 
@@ -638,6 +659,10 @@ export default function App() {
 
   const handleTreePostorder = async () => {
     const result = startPostorder();
+    setCurrentOperation("Postorder Traversal");
+    setTimeComplexity("O(n)");
+    setSpaceComplexity("O(log n)");
+    setActualSteps(treeNodes.length);
 
     if (!Array.isArray(result) || !result.length) return;
 
@@ -653,6 +678,11 @@ export default function App() {
 
   const handleTreeSearch = () => {
     const found = searchNode(searchInput);
+
+    setCurrentOperation("Search");
+    setTimeComplexity("O(log n)");
+    setSpaceComplexity("O(1)");
+    setActualSteps(Math.max(1, treeNodes.length > 0 ? Math.ceil(Math.log2(treeNodes.length + 1)) : 0));
 
     if (found) {
       setTraversalResult(`FOUND NODE: ${searchInput}`);
@@ -790,8 +820,51 @@ export default function App() {
             height: '100vh',
             zIndex: 1,
             background: '#020617',
+            overflow: 'hidden',
           }}
         >
+          <div
+            style={{
+              position: 'absolute',
+              top: '15%',
+              left: '20%',
+              width: '700px',
+              height: '700px',
+              borderRadius: '50%',
+              background: 'rgba(34,211,238,0.35)',
+              filter: 'blur(180px)',
+              pointerEvents: 'none',
+            }}
+          />
+
+          <div
+            style={{
+              position: 'absolute',
+              bottom: '10%',
+              right: '15%',
+              width: '650px',
+              height: '650px',
+              borderRadius: '50%',
+              background: 'rgba(99,102,241,0.30)',
+              filter: 'blur(180px)',
+              pointerEvents: 'none',
+            }}
+          />
+
+          <div
+            style={{
+              position: 'absolute',
+              top: '45%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: '900px',
+              height: '900px',
+              borderRadius: '50%',
+              background: 'rgba(14,165,233,0.22)',
+              filter: 'blur(220px)',
+              pointerEvents: 'none',
+            }}
+          />
           {console.log('APP TREE NODES:', treeNodes)}
           <TreeWorld
             nodes={treeNodes}
@@ -887,6 +960,12 @@ export default function App() {
               Root: {treeNodes.length > 0 ? treeNodes[0] : "None"}
             </p>
           </div>
+         <ComplexityVisualizer
+  operation={currentOperation}
+  timeComplexity={timeComplexity}
+  spaceComplexity={spaceComplexity}
+  actualOperations={actualSteps}
+/>
         </>
       )}
       {currentWorld === "graph" && (
@@ -1061,7 +1140,15 @@ export default function App() {
                   }}
                 />
                 <button
-                  onClick={insertNode}
+                  onClick={() => {
+                    insertNode();
+                    setCurrentOperation("Insert");
+                    setTimeComplexity("O(log n)");
+                    setSpaceComplexity("O(1)");
+                    setActualSteps(
+                      Math.max(1, Math.ceil(Math.log2(treeNodes.length + 2)))
+                    );
+                  }}
                   style={{
                     padding: "14px 24px",
                     borderRadius: "16px",
@@ -1089,7 +1176,15 @@ export default function App() {
                   SEARCH
                 </button>
                 <button
-                  onClick={() => deleteNode(searchInput)}
+                  onClick={() => {
+                    deleteNode(searchInput);
+                    setCurrentOperation("Delete");
+                    setTimeComplexity("O(log n)");
+                    setSpaceComplexity("O(1)");
+                    setActualSteps(
+                      Math.max(1, Math.ceil(Math.log2(treeNodes.length + 1)))
+                    );
+                  }}
                   style={{
                     padding: "14px 24px",
                     borderRadius: "16px",

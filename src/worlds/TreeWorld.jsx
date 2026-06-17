@@ -1,12 +1,13 @@
 import { Canvas } from "@react-three/fiber";
 import { useMemo, useEffect, useState } from "react";
-import { OrbitControls, Text } from "@react-three/drei";
+import { OrbitControls, Text, Stars } from "@react-three/drei";
 
 function TreeNode({
   position,
   value,
   index,
   highlighted,
+  treeDepth,
 }) {
   const [spawned, setSpawned] = useState(false);
 
@@ -29,7 +30,13 @@ function TreeNode({
             : 0.01
         }
       >
-        <sphereGeometry args={[0.85, 32, 32]} />
+        <sphereGeometry
+          args={[
+            treeDepth >= 6 ? 0.65 : treeDepth >= 4 ? 0.75 : 0.85,
+            32,
+            32,
+          ]}
+        />
 
         <meshStandardMaterial
           color={highlighted ? "#a5f3fc" : "#22d3ee"}
@@ -93,38 +100,83 @@ export default function TreeWorld({
   const isMobile =
     typeof window !== "undefined" && window.innerWidth < 768;
 
+  const treeDepth = Math.max(
+    1,
+    Math.floor(Math.log2(nodes.length || 1))
+  );
+
+  const cameraDistance = Math.min(
+    26,
+    Math.max(12, 12 + treeDepth * 1.2)
+  );
+
   const treeLayout = useMemo(() => {
-    return nodes
-      .map((value, index) => {
-        if (value === undefined || value === null) return null;
+    if (!nodes.length) return [];
 
-        const level = Math.floor(Math.log2(index + 1));
-        const levelStart = Math.pow(2, level) - 1;
-        const positionInLevel = index - levelStart;
-        const nodesInLevel = Math.pow(2, level);
+    const maxLevel = Math.max(
+      1,
+      Math.floor(Math.log2(nodes.length || 1))
+    );
 
-        const spread = 4.2;
+    const buildLayout = (
+      index,
+      depth,
+      x,
+      offset,
+      results
+    ) => {
+      if (
+        index >= nodes.length ||
+        nodes[index] === undefined ||
+        nodes[index] === null
+      ) {
+        return;
+      }
 
-        const y = 3.5 - level * 2.4;
+      const y = maxLevel * 1.8 - depth * 2.4;
 
-        const x =
-          (positionInLevel - (nodesInLevel - 1) / 2) *
-          spread *
-          2;
+      results.push({
+        value: nodes[index],
+        index,
+        position: [x, y, 0],
+      });
 
-        return {
-          value,
-          index,
-          position: [x, y, 0],
-        };
-      })
-      .filter(Boolean);
+      const nextOffset = Math.max(2.5, offset * 0.68);
+
+      buildLayout(
+        index * 2 + 1,
+        depth + 1,
+        x - offset,
+        nextOffset,
+        results
+      );
+
+      buildLayout(
+        index * 2 + 2,
+        depth + 1,
+        x + offset,
+        nextOffset,
+        results
+      );
+    };
+
+    const results = [];
+
+    buildLayout(
+      0,
+      0,
+      0,
+      Math.max(8, maxLevel * 4),
+      results
+    );
+
+    return results;
   }, [nodes]);
 
   return (
     <Canvas
       camera={{
-        position: [0, 2, 12],
+        position: [0, 2, cameraDistance],
         fov: 55,
       }}
       style={{
@@ -133,14 +185,68 @@ export default function TreeWorld({
         background: "#020617",
       }}
     >
-      <ambientLight intensity={2.5} />
+      <ambientLight intensity={3} />
 
       <directionalLight
         position={[5, 10, 5]}
         intensity={5}
         color="#ffffff"
       />
-      <pointLight position={[0, 3, 4]} intensity={10} color="#22d3ee" />
+
+      <pointLight
+        position={[0, 3, 4]}
+        intensity={14}
+        color="#22d3ee"
+      />
+
+      <pointLight
+        position={[-12, 8, -8]}
+        intensity={25}
+        color="#22d3ee"
+      />
+
+      <pointLight
+        position={[12, 6, -10]}
+        intensity={18}
+        color="#6366f1"
+      />
+
+      <mesh position={[-10, 6, -12]}>
+        <sphereGeometry args={[4, 32, 32]} />
+        <meshBasicMaterial
+          color="#22d3ee"
+          transparent
+          opacity={0.12}
+        />
+      </mesh>
+
+      <mesh position={[10, 4, -14]}>
+        <sphereGeometry args={[5, 32, 32]} />
+        <meshBasicMaterial
+          color="#6366f1"
+          transparent
+          opacity={0.1}
+        />
+      </mesh>
+
+      <mesh position={[0, 8, -18]}>
+        <sphereGeometry args={[8, 32, 32]} />
+        <meshBasicMaterial
+          color="#0ea5e9"
+          transparent
+          opacity={0.08}
+        />
+      </mesh>
+
+      <Stars
+        radius={80}
+        depth={40}
+        count={2000}
+        factor={4}
+        saturation={0}
+        fade
+        speed={0.5}
+      />
 
       {treeLayout.map((node, index) => (
         <TreeNode
@@ -149,6 +255,7 @@ export default function TreeWorld({
           value={node.value}
           index={index}
           highlighted={highlightedNode === node.value}
+          treeDepth={treeDepth}
         />
       ))}
 
@@ -171,13 +278,14 @@ export default function TreeWorld({
         );
       })}
 
+      {/* <gridHelper args={[60, 60, "#0f766e", "#082f49"]} /> */}
       <OrbitControls
-        target={[0, 0, 0]}
-        enablePan={false}
+        target={[0, Math.max(0, treeDepth * 0.8), 0]}
+        enablePan={true}
         enableRotate={true}
         enableZoom={true}
         minDistance={8}
-        maxDistance={18}
+        maxDistance={60}
         minPolarAngle={Math.PI / 4}
         maxPolarAngle={Math.PI / 2}
       />
