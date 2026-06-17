@@ -78,6 +78,9 @@ export default function MobileHome({ onEnterWorld }) {
                 if (world.name === 'Queue City') {
                   onEnterWorld('queue');
                 }
+                if (world.name === 'Tree Nexus') {
+                  onEnterWorld('tree');
+                }
               }}
               style={{
                 width: '100%',
