@@ -88,8 +88,7 @@ export default function HeapWorld({ heap = [10, 20, 30, 40, 50] }) {
       style={{
         width: "100vw",
         height: "100vh",
-        background:
-          "radial-gradient(circle, #1c1917 0%, #0c0a09 100%)",
+        background: "transparent",
       }}
     >
       <ambientLight intensity={1.2} />

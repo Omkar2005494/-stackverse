@@ -24,10 +24,10 @@ export function useTreeLogic() {
     return !!found;
   };
 
-  const insertNode = () => {
-    const value = Number(nodeInput);
+  const insertNode = (val) => {
+    const value = val !== undefined ? Number(val) : Number(nodeInput);
 
-    if (nodeInput.trim() === "" || Number.isNaN(value)) {
+    if ((val === undefined && nodeInput.trim() === "") || Number.isNaN(value)) {
       return {
         success: false,
         message: "ENTER A NODE VALUE",
@@ -84,11 +84,18 @@ export function useTreeLogic() {
     };
   };
 
-  const deleteNode = (value) => {
-    const target = Number(value ?? searchInput);
+  const deleteNode = (val) => {
+    const targetValue = val !== undefined ? Number(val) : Number(searchInput);
+
+    if ((val === undefined && searchInput.trim() === "") || Number.isNaN(targetValue)) {
+      return {
+        success: false,
+        message: "ENTER A NODE VALUE",
+      };
+    }
 
     const newTree = [...treeNodes];
-    const index = newTree.findIndex((node) => node === target);
+    const index = newTree.findIndex((node) => node === targetValue);
 
     if (index === -1) {
       return {

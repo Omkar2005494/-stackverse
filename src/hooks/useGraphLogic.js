@@ -16,8 +16,8 @@ export function useGraphLogic() {
   const [endVertex, setEndVertex] = useState("");
   const [shortestPath, setShortestPath] = useState([]);
 
-  const addVertex = () => {
-    const value = vertexInput.trim().toUpperCase();
+  const addVertex = (val) => {
+    const value = (val !== undefined ? String(val) : vertexInput).trim().toUpperCase();
 
     if (!value) return false;
     if (graphNodes.includes(value)) return false;
@@ -30,8 +30,8 @@ export function useGraphLogic() {
     return true;
   };
 
-  const deleteVertex = () => {
-    const value = vertexInput.trim().toUpperCase();
+  const deleteVertex = (val) => {
+    const value = (val !== undefined ? String(val) : vertexInput).trim().toUpperCase();
 
     if (!value) return false;
     if (!graphNodes.includes(value)) return false;

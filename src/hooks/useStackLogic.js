@@ -37,10 +37,35 @@ export function useStackLogic() {
     };
   };
 
+  const peekBlock = () => {
+    if (stack.length === 0) {
+      return {
+        success: false,
+        message: "Stack is Empty",
+        value: null,
+      };
+    }
+    return {
+      success: true,
+      message: "Peek Successful",
+      value: stack[stack.length - 1],
+    };
+  };
+
+  const clearStack = () => {
+    setStack([]);
+    return {
+      success: true,
+      message: "Stack Cleared",
+    };
+  };
+
   return {
     stack,
     setStack,
     pushBlock,
     popBlock,
+    peekBlock,
+    clearStack,
   };
 }

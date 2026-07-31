@@ -3,7 +3,11 @@
 import { useState } from "react";
 
 export function useQueueLogic() {
-  const [queue, setQueue] = useState([1, 2, 3]);
+  const [queue, setQueue] = useState([
+    { id: crypto.randomUUID(), value: 1 },
+    { id: crypto.randomUUID(), value: 2 },
+    { id: crypto.randomUUID(), value: 3 }
+  ]);
 
   const enqueue = (value) => {
     if (queue.length >= 5) {
@@ -15,7 +19,7 @@ export function useQueueLogic() {
 
     const nextValue = value ?? queue.length + 1;
 
-    setQueue((prev) => [...prev, nextValue]);
+    setQueue((prev) => [...prev, { id: crypto.randomUUID(), value: nextValue }]);
 
     return {
       success: true,
@@ -39,10 +43,33 @@ export function useQueueLogic() {
     };
   };
 
+  const peekQueue = () => {
+    if (queue.length === 0) {
+      return {
+        success: false,
+        message: "QUEUE IS EMPTY",
+      };
+    }
+    return {
+      success: true,
+      value: queue[0].value,
+    };
+  };
+
+  const clearQueue = () => {
+    setQueue([]);
+    return {
+      success: true,
+      message: "QUEUE CLEARED",
+    };
+  };
+
   return {
     queue,
     setQueue,
     enqueue,
     dequeue,
+    peekQueue,
+    clearQueue,
   };
 }

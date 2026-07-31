@@ -217,8 +217,7 @@ export default function GraphWorld({
       style={{
         width: "100vw",
         height: "100vh",
-        background:
-          "radial-gradient(circle, #0f172a 0%, #020617 100%)",
+        background: "transparent",
       }}
     >
       <ambientLight intensity={1} />

@@ -807,7 +807,9 @@ export default function MainMenu({ onStart, graphPreview }) {
             alignItems: "center",
             justifyContent: "center",
             zIndex: 1000,
-            backdropFilter: "blur(18px)",
+            backdropFilter: "blur(40px)",
+            WebkitBackdropFilter: "blur(40px)",
+            fontFamily: "'Outfit', 'Inter', system-ui, sans-serif",
           }}
         >
           <div
@@ -856,22 +858,30 @@ export default function MainMenu({ onStart, graphPreview }) {
 
           <h2
             style={{
-              marginTop: "40px",
-              color: "#22d3ee",
+              margin: "40px 0 0 0",
+              background: "linear-gradient(to right, #ffffff 30%, #a5f3fc 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
               fontSize: "36px",
-              letterSpacing: "6px",
-              textShadow: "0 0 30px rgba(34,211,238,0.7)",
+              fontWeight: "300",
+              letterSpacing: "16px",
+              textIndent: "16px",
+              filter: "drop-shadow(0 0 15px rgba(34,211,238,0.4))",
+              textTransform: "uppercase",
             }}
           >
-            INITIALIZING
+            Initializing
           </h2>
 
           <p
             style={{
-              marginTop: "14px",
-              color: "rgba(255,255,255,0.65)",
-              fontSize: "18px",
-              letterSpacing: "2px",
+              margin: "20px 0 0 0",
+              color: "rgba(148, 163, 184, 0.8)",
+              fontSize: "12px",
+              letterSpacing: "8px",
+              textTransform: "uppercase",
+              fontWeight: "400",
+              textIndent: "8px",
             }}
           >
             Loading DSA Worlds...

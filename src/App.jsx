@@ -10,18 +10,20 @@ import GraphWorld from "./worlds/GraphWorld";
 import HeapWorld from "./worlds/HeapWorld";
 import LinkedListWorld from "./worlds/LinkedListWorld";
 import HUD from "./components/HUD";
-import Controls from "./components/Controls";
+import OperationsPanel from "./components/OperationsPanel";
 import LevelPopup from "./components/LevelPopup";
 import LevelUpPopup from "./components/LevelUpPopup";
 import WarningPopup from "./components/WarningPopup";
+import CyberBackground from "./components/CyberBackground";
 import MissionPanel from "./components/MissionPanel";
 import ComboPopup from "./components/ComboPopup";
 import FloatingXP from "./components/FloatingXP";
 import Shockwave from "./components/Shockwave";
+import LearningPanel from "./components/LearningPanel";
 import MainMenu from "./components/MainMenu";
-import ComplexityVisualizer from "./components/ComplexityVisualizer";
 import Login from "./components/Login";
 import GraphPreview from "./components/GraphPreview";
+import Sidebar from "./components/Sidebar/Sidebar";
 import { missions } from "./game/missions";
 import { useAuth } from "./hooks/useAuth";
 import { loadProgress, saveProgress } from "./hooks/useProgress";
@@ -46,8 +48,8 @@ export default function App() {
     showLevelUp,
     levelReached,
   } = useGameProgress();
-  const { stack, setStack } = useStackLogic();
-  const { queue, setQueue } = useQueueLogic();
+  const { stack, setStack, peekBlock, clearStack } = useStackLogic();
+  const { queue, setQueue, peekQueue, clearQueue } = useQueueLogic();
   const {
     treeNodes,
     setTreeNodes,
@@ -264,7 +266,7 @@ export default function App() {
     // eslint-disable-next-line
   }, [achievements, unlockedAchievements]);
 
-  const pushBlock = () => {
+  const pushBlock = (val = null) => {
     if (stack.length >= 5) {
       setWarning("STACK OVERFLOW!");
       setShake(true);
@@ -277,9 +279,15 @@ export default function App() {
       return;
     }
 
-    const newStack = [...stack, stack.length + 1];
+    const newValue = val !== null ? val : stack.length + 1;
+    const newStack = [...stack, newValue];
     setStack(newStack);
     setPushCount((prev) => prev + 1);
+    
+    setCurrentOperation("Push");
+    setTimeComplexity("O(1)");
+    setSpaceComplexity("O(1)");
+    setActualSteps(1);
 
     const gainedXp = powerMode ? 20 : 10;
     addXP(gainedXp);
@@ -308,9 +316,14 @@ export default function App() {
 
     setCombo(0);
     setStack(stack.slice(0, -1));
+
+    setCurrentOperation("Pop");
+    setTimeComplexity("O(1)");
+    setSpaceComplexity("O(1)");
+    setActualSteps(1);
   };
 
-  const enqueue = () => {
+  const enqueue = (val = null) => {
     if (queue.length >= 5) {
       setWarning("QUEUE OVERFLOW!");
       setShake(true);
@@ -323,9 +336,15 @@ export default function App() {
       return;
     }
 
-    const newQueue = [...queue, queue.length + 1];
+    const newValue = val !== null ? val : queue.length + 1;
+    const newQueue = [...queue, { id: crypto.randomUUID(), value: newValue }];
     setQueue(newQueue);
     setEnqueueCount((prev) => prev + 1);
+
+    setCurrentOperation("Enqueue");
+    setTimeComplexity("O(1)");
+    setSpaceComplexity("O(1)");
+    setActualSteps(1);
 
     const gainedXp = powerMode ? 20 : 10;
 
@@ -356,14 +375,19 @@ export default function App() {
 
     setQueue(queue.slice(1));
     setCombo(0);
+
+    setCurrentOperation("Dequeue");
+    setTimeComplexity("O(1)");
+    setSpaceComplexity("O(1)");
+    setActualSteps(1);
   };
 
 
 
-  const insertHeap = () => {
-    const value = Number(heapInput);
+  const insertHeap = (val) => {
+    const value = val !== undefined ? Number(val) : Number(heapInput);
 
-    if (heapInput.trim() === "" || Number.isNaN(value)) {
+    if ((val === undefined && heapInput.trim() === "") || Number.isNaN(value)) {
       return;
     }
 
@@ -404,6 +428,11 @@ export default function App() {
     addXP(10);
     setHeap(newHeap);
     setHeapInput("");
+
+    setCurrentOperation("Insert");
+    setTimeComplexity("O(log n)");
+    setSpaceComplexity("O(1)");
+    setActualSteps(Math.ceil(Math.log2(newHeap.length || 2)));
   };
 
   const extractRoot = () => {
@@ -460,12 +489,17 @@ export default function App() {
     setHeapExtractCount((prev) => prev + 1);
     addXP(10);
     setHeap(newHeap);
+
+    setCurrentOperation("Extract Root");
+    setTimeComplexity("O(log n)");
+    setSpaceComplexity("O(1)");
+    setActualSteps(Math.ceil(Math.log2(newHeap.length || 2)));
   };
 
-  const deleteHeapNode = () => {
-    const value = Number(heapInput);
+  const deleteHeapNode = (val) => {
+    const value = val !== undefined ? Number(val) : Number(heapInput);
 
-    if (heapInput.trim() === "" || Number.isNaN(value)) {
+    if ((val === undefined && heapInput.trim() === "") || Number.isNaN(value)) {
       return;
     }
 
@@ -514,6 +548,11 @@ export default function App() {
     setHeap(rebuiltHeap);
     setHeapInput("");
     addXP(10);
+
+    setCurrentOperation("Delete Node");
+    setTimeComplexity("O(n)");
+    setSpaceComplexity("O(n)");
+    setActualSteps(heap.length);
   };
 
   const heapSort = () => {
@@ -524,12 +563,22 @@ export default function App() {
     );
 
     addXP(20);
+
+    setCurrentOperation("Heap Sort");
+    setTimeComplexity("O(n log n)");
+    setSpaceComplexity("O(1)");
+    setActualSteps(heap.length);
   };
 
   const handleGraphBFS = async () => {
     const result = startGraphBFS();
 
     if (!result.length) return;
+
+    setCurrentOperation("Graph BFS");
+    setTimeComplexity("O(V + E)");
+    setSpaceComplexity("O(V)");
+    setActualSteps(result.length);
 
     setTraversalResult(`GRAPH BFS: ${result.join(" → ")}`);
     setBfsCount((prev) => prev + 1);
@@ -547,6 +596,11 @@ export default function App() {
     const result = startGraphDFS();
 
     if (!result.length) return;
+
+    setCurrentOperation("Graph DFS");
+    setTimeComplexity("O(V + E)");
+    setSpaceComplexity("O(V)");
+    setActualSteps(result.length);
 
     setTraversalResult(`GRAPH DFS: ${result.join(" → ")}`);
     setDfsCount((prev) => prev + 1);
@@ -567,6 +621,11 @@ export default function App() {
       setTraversalResult("NO PATH FOUND");
       return;
     }
+
+    setCurrentOperation("Dijkstra's Shortest Path");
+    setTimeComplexity("O((V + E) log V)");
+    setSpaceComplexity("O(V)");
+    setActualSteps(path.length);
 
     setTraversalResult(`PATH: ${path.join(" → ")}`);
 
@@ -676,18 +735,18 @@ export default function App() {
     setHighlightedNode(null);
   };
 
-  const handleTreeSearch = () => {
-    const found = searchNode(searchInput);
-
+  const handleTreeSearch = (val) => {
+    const success = searchNode(val);
     setCurrentOperation("Search");
     setTimeComplexity("O(log n)");
     setSpaceComplexity("O(1)");
-    setActualSteps(Math.max(1, treeNodes.length > 0 ? Math.ceil(Math.log2(treeNodes.length + 1)) : 0));
-
-    if (found) {
-      setTraversalResult(`FOUND NODE: ${searchInput}`);
+    setActualSteps(
+      Math.max(1, Math.ceil(Math.log2(treeNodes.length + 1)))
+    );
+    if (success) {
+      setTraversalResult(`FOUND NODE: ${val}`);
     } else {
-      setTraversalResult(`NODE ${searchInput} NOT FOUND`);
+      setTraversalResult(`NODE ${val} NOT FOUND`);
     }
   };
 
@@ -699,14 +758,18 @@ export default function App() {
       <div
         style={{
           height: "100vh",
+          width: "100vw",
+          position: "fixed",
+          top: 0,
+          left: 0,
+          zIndex: 9999,
           display: "flex",
           flexDirection: "column",
           justifyContent: "center",
           alignItems: "center",
-          background:
-            "radial-gradient(circle at center, #0f172a 0%, #020617 70%)",
+          background: "radial-gradient(circle at center, #020617 0%, #000000 100%)",
+          fontFamily: "'Outfit', 'Inter', system-ui, sans-serif",
           overflow: "hidden",
-          position: "relative",
         }}
       >
         <div
@@ -736,22 +799,33 @@ export default function App() {
 
         <h1
           style={{
-            color: "#22d3ee",
+            margin: 0,
+            background: "linear-gradient(to right, #ffffff 30%, #a5f3fc 100%)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
             fontSize: "42px",
-            letterSpacing: "4px",
-            marginBottom: "24px",
+            fontWeight: "300",
+            letterSpacing: "12px",
+            textIndent: "12px",
+            filter: "drop-shadow(0 0 15px rgba(34,211,238,0.4))",
+            textTransform: "uppercase",
+            marginBottom: "16px",
             zIndex: 1,
-            textShadow: "0 0 25px rgba(34,211,238,0.6)",
           }}
         >
-          ⚡ STACKVERSE
+          Stackverse
         </h1>
 
         <p
           style={{
-            color: "#cbd5e1",
-            fontSize: "18px",
-            marginBottom: "24px",
+            margin: 0,
+            color: "rgba(148, 163, 184, 0.8)",
+            fontSize: "12px",
+            letterSpacing: "6px",
+            textTransform: "uppercase",
+            fontWeight: "400",
+            textIndent: "6px",
+            marginBottom: "40px",
             zIndex: 1,
           }}
         >
@@ -762,7 +836,7 @@ export default function App() {
           style={{
             width: "350px",
             maxWidth: "80vw",
-            height: "10px",
+            height: "4px",
             borderRadius: "999px",
             background: "rgba(255,255,255,0.08)",
             overflow: "hidden",
@@ -773,8 +847,9 @@ export default function App() {
             style={{
               width: "75%",
               height: "100%",
-              background:
-                "linear-gradient(90deg,#22d3ee,#6366f1)",
+              background: "linear-gradient(90deg, transparent, #a5f3fc, #22d3ee)",
+              borderRadius: "999px",
+              boxShadow: "0 0 10px rgba(34,211,238,0.5)",
             }}
           />
         </div>
@@ -802,7 +877,23 @@ export default function App() {
           graphPreview={<GraphPreview />}
         />
       )}
-      {currentWorld === "stack" ? (
+      
+      {gameStarted && (
+        <Sidebar
+          currentWorld={currentWorld}
+          switchWorld={switchWorld}
+          user={user}
+          level={level}
+          xp={xp}
+          signOut={() => signOut(auth)}
+          setShowAchievements={setShowAchievements}
+        />
+      )}
+
+      <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+        <CyberBackground />
+        
+        {currentWorld === "stack" ? (
         <StackWorld
           stack={stack}
           shake={shake}
@@ -810,61 +901,18 @@ export default function App() {
           powerMode={powerMode}
         />
       ) : currentWorld === "queue" ? (
-        <QueueWorld queue={queue} />
+        <QueueWorld queue={queue} shake={shake} />
       ) : currentWorld === "tree" ? (
         <div
           style={{
-            position: 'fixed',
+            position: 'absolute',
             inset: 0,
-            width: '100vw',
-            height: '100vh',
+            width: '100%',
+            height: '100%',
             zIndex: 1,
-            background: '#020617',
             overflow: 'hidden',
           }}
         >
-          <div
-            style={{
-              position: 'absolute',
-              top: '15%',
-              left: '20%',
-              width: '700px',
-              height: '700px',
-              borderRadius: '50%',
-              background: 'rgba(34,211,238,0.35)',
-              filter: 'blur(180px)',
-              pointerEvents: 'none',
-            }}
-          />
-
-          <div
-            style={{
-              position: 'absolute',
-              bottom: '10%',
-              right: '15%',
-              width: '650px',
-              height: '650px',
-              borderRadius: '50%',
-              background: 'rgba(99,102,241,0.30)',
-              filter: 'blur(180px)',
-              pointerEvents: 'none',
-            }}
-          />
-
-          <div
-            style={{
-              position: 'absolute',
-              top: '45%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: '900px',
-              height: '900px',
-              borderRadius: '50%',
-              background: 'rgba(14,165,233,0.22)',
-              filter: 'blur(220px)',
-              pointerEvents: 'none',
-            }}
-          />
           {console.log('APP TREE NODES:', treeNodes)}
           <TreeWorld
             nodes={treeNodes}
@@ -879,7 +927,15 @@ export default function App() {
           highlightedNode={highlightedNode}
         />
       ) : currentWorld === "linkedlist" ? (
-        <LinkedListWorld addXP={addXP} />
+        <LinkedListWorld 
+          addXP={addXP} 
+          setLearningStats={(op, time, space, steps) => {
+            setCurrentOperation(op);
+            setTimeComplexity(time);
+            setSpaceComplexity(space);
+            setActualSteps(steps);
+          }}
+        />
       ) : (
         <HeapWorld
           heap={heap}
@@ -898,15 +954,52 @@ export default function App() {
         amount={powerMode ? 20 : 10}
       />
       <Shockwave show={showShockwave} />
-      {currentWorld === "stack" && (
-        <HUD
-          stack={stack}
-          xp={xp}
-          level={level}
-          combo={combo}
-          xpProgress={xpProgress}
-          powerMode={powerMode}
+
+      {currentWorld !== "menu" && gameStarted && (
+        <LearningPanel
+          operation={currentOperation}
+          timeComplexity={timeComplexity}
+          spaceComplexity={spaceComplexity}
+          actualOperations={actualSteps}
+          worldName={currentWorld}
         />
+      )}
+
+      {currentWorld === "stack" && (
+        <>
+          <HUD
+            stack={stack}
+            xp={xp}
+            level={level}
+            combo={combo}
+            xpProgress={xpProgress}
+            powerMode={powerMode}
+          />
+          <div
+            style={{
+              position: "absolute",
+              top: "90px",
+              left: "20px",
+              zIndex: 300,
+              padding: "12px 16px",
+              borderRadius: "12px",
+              background: "rgba(15,23,42,0.82)",
+              backdropFilter: "blur(12px)",
+              border: "1px solid rgba(249,115,22,0.25)",
+              color: "white",
+              fontSize: "12px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "4px"
+            }}
+          >
+            <h3 style={{ margin: 0, color: "#f97316", fontSize: "14px", marginBottom: "4px" }}>
+              STACK KINGDOM
+            </h3>
+            <div style={{ margin: 0 }}>Stack Size: {stack.length}/5</div>
+            <div style={{ margin: 0 }}>Top: {stack.length > 0 ? stack[stack.length - 1] : "None"}</div>
+          </div>
+        </>
       )}
 
       {currentWorld === "queue" && (
@@ -916,19 +1009,22 @@ export default function App() {
             top: "90px",
             left: "20px",
             zIndex: 300,
-            padding: "18px",
-            borderRadius: "18px",
+            padding: "12px 16px",
+            borderRadius: "12px",
             background: "rgba(15,23,42,0.82)",
             backdropFilter: "blur(12px)",
             border: "1px solid rgba(168,85,247,0.2)",
             color: "white",
-            minWidth: "220px",
+            fontSize: "12px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "4px"
           }}
         >
-          <h3 style={{ margin: 0, color: "#a855f7" }}>
+          <h3 style={{ margin: 0, color: "#a855f7", fontSize: "14px", marginBottom: "4px" }}>
             QUEUE CITY
           </h3>
-          <p>Queue Size: {queue.length}/5</p>
+          <div style={{ margin: 0 }}>Queue Size: {queue.length}/5</div>
         </div>
       )}
 
@@ -941,31 +1037,26 @@ export default function App() {
               top: "110px",
               left: "20px",
               zIndex: 300,
-              padding: "14px",
-              borderRadius: "18px",
+              padding: "12px 16px",
+              borderRadius: "12px",
               background: "rgba(15,23,42,0.82)",
               backdropFilter: "blur(12px)",
               border: "1px solid rgba(20,184,166,0.2)",
               color: "white",
-              minWidth: "180px",
+              fontSize: "12px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "4px"
             }}
           >
-            <h3 style={{ margin: 0, color: "#14b8a6" }}>
+            <h3 style={{ margin: 0, color: "#14b8a6", fontSize: "14px", marginBottom: "4px" }}>
               TREE NEXUS
             </h3>
-            <p>Height: {Math.ceil(Math.log2(treeNodes.length + 1))}</p>
-            <p>Type: BST</p>
-            <p>Nodes: {treeNodes.length}</p>
-            <p>
-              Root: {treeNodes.length > 0 ? treeNodes[0] : "None"}
-            </p>
+            <div style={{ margin: 0 }}>Height: {Math.ceil(Math.log2(treeNodes.length + 1))}</div>
+            <div style={{ margin: 0 }}>Type: BST</div>
+            <div style={{ margin: 0 }}>Nodes: {treeNodes.length}</div>
+            <div style={{ margin: 0 }}>Root: {treeNodes.length > 0 ? treeNodes[0] : "None"}</div>
           </div>
-         <ComplexityVisualizer
-  operation={currentOperation}
-  timeComplexity={timeComplexity}
-  spaceComplexity={spaceComplexity}
-  actualOperations={actualSteps}
-/>
         </>
       )}
       {currentWorld === "graph" && (
@@ -975,24 +1066,25 @@ export default function App() {
             top: "90px",
             left: "20px",
             zIndex: 300,
-            padding: "18px",
-            borderRadius: "18px",
+            padding: "12px 16px",
+            borderRadius: "12px",
             background: "rgba(15,23,42,0.82)",
             backdropFilter: "blur(12px)",
             border: "1px solid rgba(99,102,241,0.25)",
             color: "white",
-            minWidth: "220px",
+            fontSize: "12px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "4px"
           }}
         >
-          <h3 style={{ margin: 0, color: "#6366f1" }}>
+          <h3 style={{ margin: 0, color: "#6366f1", fontSize: "14px", marginBottom: "4px" }}>
             GRAPH REALM
           </h3>
-          <p>Vertices: {graphNodes.length}</p>
-          <p>Edges: {graphEdges.length}</p>
-          <p>Type: Undirected Graph</p>
-          <p>
-            Root Vertex: {graphNodes.length > 0 ? graphNodes[0] : "None"}
-          </p>
+          <div style={{ margin: 0 }}>Vertices: {graphNodes.length}</div>
+          <div style={{ margin: 0 }}>Edges: {graphEdges.length}</div>
+          <div style={{ margin: 0 }}>Type: Undirected</div>
+          <div style={{ margin: 0 }}>Root: {graphNodes.length > 0 ? graphNodes[0] : "None"}</div>
         </div>
       )}
       {currentWorld === "heap" && (
@@ -1002,288 +1094,130 @@ export default function App() {
             top: "90px",
             left: "20px",
             zIndex: 300,
-            padding: "18px",
-            borderRadius: "18px",
+            padding: "12px 16px",
+            borderRadius: "12px",
             background: "rgba(15,23,42,0.82)",
             backdropFilter: "blur(12px)",
             border: "1px solid rgba(249,115,22,0.25)",
             color: "white",
-            minWidth: "220px",
+            fontSize: "12px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "4px"
           }}
         >
-          <h3 style={{ margin: 0, color: "#f97316" }}>
+          <h3 style={{ margin: 0, color: "#f97316", fontSize: "14px", marginBottom: "4px" }}>
             HEAP CITADEL
           </h3>
-
-          <p>Nodes: {heap.length}</p>
-          <p>Root: {heap.length > 0 ? heap[0] : "None"}</p>
-          <p>Height: {Math.ceil(Math.log2(heap.length + 1))}</p>
-          <p>Type: {heapType === "min" ? "Min Heap" : "Max Heap"}</p>
+          <div style={{ margin: 0 }}>Nodes: {heap.length}</div>
+          <div style={{ margin: 0 }}>Root: {heap.length > 0 ? heap[0] : "None"}</div>
+          <div style={{ margin: 0 }}>Height: {Math.ceil(Math.log2(heap.length + 1))}</div>
+          <div style={{ margin: 0 }}>Type: {heapType === "min" ? "Min Heap" : "Max Heap"}</div>
         </div>
       )}
 
-      {currentWorld === "stack" ? (
-        <Controls
-          pushBlock={pushBlock}
-          popBlock={popBlock}
+      {gameStarted && currentWorld === "stack" ? (
+        <OperationsPanel
+          onInsert={pushBlock}
+          insertLabel="PUSH"
+          color="#f97316"
+          secondaryActions={[
+            { label: "POP", onClick: popBlock },
+            { label: "PEEK", onClick: () => {
+                setCurrentOperation("Peek");
+                setTimeComplexity("O(1)");
+                setSpaceComplexity("O(1)");
+                setActualSteps(1);
+                const res = peekBlock();
+                if (res?.success) alert(`PEEK Result: ${res.value}`);
+                else if (res?.message) alert(res.message);
+              }
+            },
+            { label: "CLEAR", onClick: () => {
+                setCurrentOperation("Clear");
+                setTimeComplexity("O(n)");
+                setSpaceComplexity("O(1)");
+                setActualSteps(stack.length);
+                clearStack();
+              }, 
+              isDanger: true 
+            }
+          ]}
         />
-      ) : currentWorld === "queue" ? (
-        <div
-          style={{
-            position: "absolute",
-            bottom: "40px",
-            left: "50%",
-            transform: "translateX(-50%)",
-            display: "flex",
-            gap: "18px",
-            zIndex: 300,
-          }}
-        >
-          <button
-            onClick={enqueue}
-            style={{
-              padding: "14px 24px",
-              borderRadius: "16px",
-              border: "none",
-              background: "#22d3ee",
-              color: "white",
-              fontWeight: "bold",
-              cursor: "pointer",
-              boxShadow: "0 0 20px rgba(34,211,238,0.5)",
-            }}
-          >
-            ENQUEUE
-          </button>
-
-          <button
-            onClick={dequeue}
-            style={{
-              padding: "14px 24px",
-              borderRadius: "16px",
-              border: "none",
-              background: "#a855f7",
-              color: "white",
-              fontWeight: "bold",
-              cursor: "pointer",
-              boxShadow: "0 0 20px rgba(168,85,247,0.5)",
-            }}
-          >
-            DEQUEUE
-          </button>
-        </div>
+      ) : gameStarted && currentWorld === "queue" ? (
+        <OperationsPanel
+          onInsert={enqueue}
+          insertLabel="ENQUEUE"
+          color="#a855f7"
+          secondaryActions={[
+            { label: "DEQUEUE", onClick: dequeue },
+            { label: "PEEK", onClick: () => {
+                setCurrentOperation("Peek");
+                setTimeComplexity("O(1)");
+                setSpaceComplexity("O(1)");
+                setActualSteps(1);
+                const res = peekQueue();
+                if (res?.success) alert(`PEEK Result: ${res.value}`);
+                else if (res?.message) alert(res.message);
+              }
+            },
+            { label: "CLEAR", onClick: () => {
+                setCurrentOperation("Clear");
+                setTimeComplexity("O(n)");
+                setSpaceComplexity("O(1)");
+                setActualSteps(queue.length);
+                clearQueue();
+              }, 
+              isDanger: true 
+            }
+          ]}
+        />
       ) : (
         <>
-          {currentWorld === "tree" && (
+          {gameStarted && currentWorld === "tree" && (
             <>
-              <div
-                style={{
-                  position: "absolute",
-                  bottom: "40px",
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  display: "flex",
-                  gap: "18px",
-                  flexWrap: "nowrap",
-                  whiteSpace: "nowrap",
-                  overflowX: "auto",
-                  zIndex: 300,
-                  padding: "18px",
-                  background: "rgba(15,23,42,0.82)",
-                  borderRadius: "22px",
-                  backdropFilter: "blur(12px)",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  minWidth: "fit-content",
+              <OperationsPanel
+                onInsert={(val) => {
+                  insertNode(val);
+                  setCurrentOperation("Insert");
+                  setTimeComplexity("O(log n)");
+                  setSpaceComplexity("O(1)");
+                  setActualSteps(Math.max(1, Math.ceil(Math.log2(treeNodes.length + 2))));
                 }}
-              >
-                <input
-                  type="number"
-                  value={nodeInput}
-                  onChange={(e) => setNodeInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      insertNode();
+                insertLabel="ADD NODE"
+                color="#22d3ee"
+                secondaryActions={[
+                  { 
+                    label: "SEARCH", 
+                    onClick: (val) => {
+                      const res = handleTreeSearch(val);
                     }
-                  }}
-                  placeholder={
-                    treeNodes.length === 0
-                      ? "Root Node"
-                      : "Node Value"
-                  }
-                  style={{
-                    padding: "14px",
-                    borderRadius: "16px",
-                    border: "1px solid rgba(255,255,255,0.2)",
-                    background: "rgba(15,23,42,0.9)",
-                    color: "white",
-                    width: "120px",
-                    outline: "none",
-                  }}
-                />
-                <input
-                  type="number"
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      handleTreeSearch();
-                    }
-                  }}
-                  placeholder="Search"
-                  style={{
-                    padding: "14px",
-                    borderRadius: "16px",
-                    border: "1px solid rgba(255,255,255,0.2)",
-                    background: "rgba(15,23,42,0.9)",
-                    color: "white",
-                    width: "120px",
-                    outline: "none",
-                  }}
-                />
-                <button
-                  onClick={() => {
-                    insertNode();
-                    setCurrentOperation("Insert");
-                    setTimeComplexity("O(log n)");
-                    setSpaceComplexity("O(1)");
-                    setActualSteps(
-                      Math.max(1, Math.ceil(Math.log2(treeNodes.length + 2)))
-                    );
-                  }}
-                  style={{
-                    padding: "14px 24px",
-                    borderRadius: "16px",
-                    border: "none",
-                    background: "#22d3ee",
-                    color: "white",
-                    fontWeight: "bold",
-                    boxShadow: "0 0 20px rgba(34,211,238,0.5)",
-                  }}
-                >
-                  ADD NODE
-                </button>
-                <button
-                  onClick={handleTreeSearch}
-                  style={{
-                    padding: "14px 24px",
-                    borderRadius: "16px",
-                    border: "none",
-                    background: "#f59e0b",
-                    color: "white",
-                    fontWeight: "bold",
-                    boxShadow: "0 0 20px rgba(245,158,11,0.5)",
-                  }}
-                >
-                  SEARCH
-                </button>
-                <button
-                  onClick={() => {
-                    deleteNode(searchInput);
-                    setCurrentOperation("Delete");
-                    setTimeComplexity("O(log n)");
-                    setSpaceComplexity("O(1)");
-                    setActualSteps(
-                      Math.max(1, Math.ceil(Math.log2(treeNodes.length + 1)))
-                    );
-                  }}
-                  style={{
-                    padding: "14px 24px",
-                    borderRadius: "16px",
-                    border: "none",
-                    background: "#ef4444",
-                    color: "white",
-                    fontWeight: "bold",
-                    boxShadow: "0 0 20px rgba(239,68,68,0.5)",
-                  }}
-                >
-                  DELETE
-                </button>
-                <button
-                  onClick={resetTree}
-                  style={{
-                    padding: "14px 24px",
-                    borderRadius: "16px",
-                    border: "none",
-                    background: "#a855f7",
-                    color: "white",
-                    fontWeight: "bold",
-                    boxShadow: "0 0 20px rgba(168,85,247,0.5)",
-                  }}
-                >
-                  RESET TREE
-                </button>
-                <button
-                  onClick={handleTreeBFS}
-                  style={{
-                    padding: "14px 24px",
-                    borderRadius: "16px",
-                    border: "none",
-                    background: "#14b8a6",
-                    color: "white",
-                    fontWeight: "bold",
-                    boxShadow: "0 0 20px rgba(20,184,166,0.5)",
-                  }}
-                >
-                  START BFS
-                </button>
-                <button
-                  onClick={handleTreeDFS}
-                  style={{
-                    padding: "14px 24px",
-                    borderRadius: "16px",
-                    border: "none",
-                    background: "#0ea5e9",
-                    color: "white",
-                    fontWeight: "bold",
-                    boxShadow: "0 0 20px rgba(14,165,233,0.5)",
-                  }}
-                >
-                  START DFS
-                </button>
-                <button
-                  onClick={handleTreeInorder}
-                  style={{
-                    padding: "14px 24px",
-                    borderRadius: "16px",
-                    border: "none",
-                    background: "#10b981",
-                    color: "white",
-                    fontWeight: "bold",
-                  }}
-                >
-                  INORDER
-                </button>
-                <button
-                  onClick={handleTreePreorder}
-                  style={{
-                    padding: "14px 24px",
-                    borderRadius: "16px",
-                    border: "none",
-                    background: "#6366f1",
-                    color: "white",
-                    fontWeight: "bold",
-                  }}
-                >
-                  PREORDER
-                </button>
-                <button
-                  onClick={handleTreePostorder}
-                  style={{
-                    padding: "14px 24px",
-                    borderRadius: "16px",
-                    border: "none",
-                    background: "#ec4899",
-                    color: "white",
-                    fontWeight: "bold",
-                  }}
-                >
-                  POSTORDER
-                </button>
-              </div>
+                  },
+                  { 
+                    label: "DELETE", 
+                    onClick: (val) => {
+                      deleteNode(val);
+                      setCurrentOperation("Delete");
+                      setTimeComplexity("O(log n)");
+                      setSpaceComplexity("O(1)");
+                      setActualSteps(Math.max(1, Math.ceil(Math.log2(treeNodes.length + 1))));
+                    },
+                    isDanger: true
+                  },
+                  { label: "BFS", onClick: handleTreeBFS },
+                  { label: "DFS", onClick: handleTreeDFS },
+                  { label: "INORDER", onClick: handleTreeInorder },
+                  { label: "PREORDER", onClick: handleTreePreorder },
+                  { label: "POSTORDER", onClick: handleTreePostorder },
+                  { label: "RESET", onClick: resetTree, isDanger: true }
+                ]}
+              />
+
               {traversalResult && (
                 <div
                   style={{
                     position: "absolute",
-                    bottom: "140px",
+                    bottom: "40px",
                     left: "50%",
                     transform: "translateX(-50%)",
                     zIndex: 400,
@@ -1303,202 +1237,49 @@ export default function App() {
               )}
             </>
           )}
-          {currentWorld === "graph" && (
+          {gameStarted && currentWorld === "graph" && (
             <>
-              <div
-                style={{
-                  position: "absolute",
-                  bottom: "40px",
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  display: "flex",
-                  gap: "18px",
-                  zIndex: 300,
-                  padding: "18px",
-                  background: "rgba(15,23,42,0.82)",
-                  borderRadius: "22px",
-                  backdropFilter: "blur(12px)",
-                  border: "1px solid rgba(99,102,241,0.15)",
-                }}
-              >
-                <input
-                  type="text"
-                  value={vertexInput}
-                  onChange={(e) => setVertexInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      addVertex();
-                    }
-                  }}
-                  placeholder="Vertex"
-                  style={{
-                    padding: "14px",
-                    borderRadius: "16px",
-                    border: "1px solid rgba(255,255,255,0.2)",
-                    background: "rgba(15,23,42,0.9)",
-                    color: "white",
-                    width: "120px",
-                    outline: "none",
-                  }}
-                />
-                <input
-                  type="text"
-                  value={edgeInput}
-                  onChange={(e) => setEdgeInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      addEdge();
-                    }
-                  }}
-                  placeholder="A-B"
-                  style={{
-                    padding: "14px",
-                    borderRadius: "16px",
-                    border: "1px solid rgba(255,255,255,0.2)",
-                    background: "rgba(15,23,42,0.9)",
-                    color: "white",
-                    width: "120px",
-                    outline: "none",
-                  }}
-                />
-                <input
-                  type="text"
-                  value={startVertex}
-                  onChange={(e) => setStartVertex(e.target.value)}
-                  placeholder="Start"
-                  style={{
-                    padding: "14px",
-                    borderRadius: "16px",
-                    border: "1px solid rgba(255,255,255,0.2)",
-                    background: "rgba(15,23,42,0.9)",
-                    color: "white",
-                    width: "90px",
-                    outline: "none",
-                  }}
-                />
-                <input
-                  type="text"
-                  value={endVertex}
-                  onChange={(e) => setEndVertex(e.target.value)}
-                  placeholder="End"
-                  style={{
-                    padding: "14px",
-                    borderRadius: "16px",
-                    border: "1px solid rgba(255,255,255,0.2)",
-                    background: "rgba(15,23,42,0.9)",
-                    color: "white",
-                    width: "90px",
-                    outline: "none",
-                  }}
-                />
-                <button
-                  onClick={addVertex}
-                  style={{
-                    padding: "14px 24px",
-                    borderRadius: "16px",
-                    border: "none",
-                    background: "#6366f1",
-                    color: "white",
-                    fontWeight: "bold",
-                  }}
-                >
-                  ADD VERTEX
-                </button>
-                <button
-                  onClick={deleteVertex}
-                  style={{
-                    padding: "14px 24px",
-                    borderRadius: "16px",
-                    border: "none",
-                    background: "#ef4444",
-                    color: "white",
-                    fontWeight: "bold",
-                  }}
-                >
-                  DELETE VERTEX
-                </button>
-
-                <button
-                  onClick={addEdge}
-                  style={{
-                    padding: "14px 24px",
-                    borderRadius: "16px",
-                    border: "none",
-                    background: "#14b8a6",
-                    color: "white",
-                    fontWeight: "bold",
-                  }}
-                >
-                  ADD EDGE
-                </button>
-                <button
-                  onClick={deleteEdge}
-                  style={{
-                    padding: "14px 24px",
-                    borderRadius: "16px",
-                    border: "none",
-                    background: "#dc2626",
-                    color: "white",
-                    fontWeight: "bold",
-                  }}
-                >
-                  DELETE EDGE
-                </button>
-
-                <button
-                  onClick={handleGraphBFS}
-                  style={{
-                    padding: "14px 24px",
-                    borderRadius: "16px",
-                    border: "none",
-                    background: "#f59e0b",
-                    color: "white",
-                    fontWeight: "bold",
-                  }}
-                >
-                  GRAPH BFS
-                </button>
-
-                <button
-                  onClick={handleGraphDFS}
-                  style={{
-                    padding: "14px 24px",
-                    borderRadius: "16px",
-                    border: "none",
-                    background: "#ec4899",
-                    color: "white",
-                    fontWeight: "bold",
-                  }}
-                >
-                  GRAPH DFS
-                </button>
-                <button
-                  onClick={handleShortestPath}
-                  style={{
-                    padding: "14px 24px",
-                    borderRadius: "16px",
-                    border: "none",
-                    background: "#22c55e",
-                    color: "white",
-                    fontWeight: "bold",
-                  }}
-                >
-                  SHORTEST PATH
-                </button>
-                <button
-                  onClick={resetGraph}
-                  style={{
-                    padding: "14px 24px",
-                    borderRadius: "16px",
-                    border: "none",
-                    background: "#ef4444",
-                    color: "white",
-                    fontWeight: "bold",
-                  }}
-                >
-                  RESET GRAPH
-                </button>
-              </div>
+              <OperationsPanel
+                inputType="text"
+                onInsert={(val) => addVertex(val)}
+                insertLabel="ADD VERTEX"
+                color="#6366f1"
+                headerSlot={
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '8px' }}>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input 
+                        value={edgeInput} 
+                        onChange={(e) => setEdgeInput(e.target.value)} 
+                        placeholder="Edge (A-B)" 
+                        style={{ flex: 1, background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", padding: "10px 14px", color: "white", outline: "none", fontSize: "14px" }} 
+                      />
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input 
+                        value={startVertex} 
+                        onChange={(e) => setStartVertex(e.target.value)} 
+                        placeholder="Start Node" 
+                        style={{ flex: 1, background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", padding: "10px 14px", color: "white", outline: "none", fontSize: "14px" }} 
+                      />
+                      <input 
+                        value={endVertex} 
+                        onChange={(e) => setEndVertex(e.target.value)} 
+                        placeholder="End Node" 
+                        style={{ flex: 1, background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", padding: "10px 14px", color: "white", outline: "none", fontSize: "14px" }} 
+                      />
+                    </div>
+                  </div>
+                }
+                secondaryActions={[
+                  { label: "DEL VERTEX", onClick: (val) => deleteVertex(val), isDanger: true },
+                  { label: "ADD EDGE", onClick: addEdge },
+                  { label: "DEL EDGE", onClick: deleteEdge, isDanger: true },
+                  { label: "GRAPH BFS", onClick: handleGraphBFS },
+                  { label: "GRAPH DFS", onClick: handleGraphDFS },
+                  { label: "SHORTEST", onClick: handleShortestPath, color: "#22c55e" },
+                  { label: "RESET", onClick: resetGraph, isDanger: true }
+                ]}
+              />
               {traversalResult && (
                 <div
                   style={{
@@ -1523,7 +1304,7 @@ export default function App() {
               )}
             </>
           )}
-          {currentWorld === "heap" && (
+          {gameStarted && currentWorld === "heap" && (
             <>
               {heapSortResult && (
                 <div
@@ -1544,423 +1325,41 @@ export default function App() {
                   {heapSortResult}
                 </div>
               )}
-              <div
-                style={{
-                  position: "absolute",
-                  bottom: "40px",
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  display: "flex",
-                  gap: "16px",
-                  zIndex: 300,
-                  padding: "18px",
-                  background: "rgba(15,23,42,0.82)",
-                  borderRadius: "22px",
-                }}
-              >
-                <input
-                  value={heapInput}
-                  onChange={(e) => setHeapInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      insertHeap();
-                    }
-                  }}
-                  placeholder="Value"
-                  style={{
-                    padding: "14px",
-                    borderRadius: "12px",
-                    border: "none",
-                  }}
-                />
-
-                <button
-                  onClick={() => {
-                    const nextType =
-                      heapType === "min" ? "max" : "min";
-
+              <OperationsPanel
+                onInsert={(val) => insertHeap(val)}
+                insertLabel="INSERT"
+                color="#f97316"
+                secondaryActions={[
+                  { label: "EXTRACT ROOT", onClick: extractRoot },
+                  { label: "DELETE NODE", onClick: (val) => deleteHeapNode(val), isDanger: true },
+                  { label: "HEAP SORT", onClick: heapSort },
+                  { label: "TOGGLE TYPE", onClick: () => {
+                    const nextType = heapType === "min" ? "max" : "min";
                     setHeapType(nextType);
-                    setWarning(
-                      nextType === "min"
-                        ? "SWITCHED TO MIN HEAP"
-                        : "SWITCHED TO MAX HEAP"
-                    );
-                    setTimeout(() => {
-                      setWarning("");
-                    }, 1500);
-
+                    setWarning(nextType === "min" ? "SWITCHED TO MIN HEAP" : "SWITCHED TO MAX HEAP");
+                    setTimeout(() => setWarning(""), 1500);
                     const rebuiltHeap = [];
-
                     heap.forEach((num) => {
                       rebuiltHeap.push(num);
-
                       let current = rebuiltHeap.length - 1;
-
                       while (current > 0) {
                         const parent = Math.floor((current - 1) / 2);
-
-                        const correctOrder =
-                          nextType === "min"
-                            ? rebuiltHeap[parent] <= rebuiltHeap[current]
-                            : rebuiltHeap[parent] >= rebuiltHeap[current];
-
-                        if (correctOrder) {
-                          break;
-                        }
-
-                        [rebuiltHeap[parent], rebuiltHeap[current]] = [
-                          rebuiltHeap[current],
-                          rebuiltHeap[parent],
-                        ];
-
+                        const correctOrder = nextType === "min" ? rebuiltHeap[parent] <= rebuiltHeap[current] : rebuiltHeap[parent] >= rebuiltHeap[current];
+                        if (correctOrder) break;
+                        [rebuiltHeap[parent], rebuiltHeap[current]] = [rebuiltHeap[current], rebuiltHeap[parent]];
                         current = parent;
                       }
                     });
-
                     setHeap(rebuiltHeap);
                     addXP(5);
-                  }}
-                >
-                  {heapType === "min" ? "MIN HEAP" : "MAX HEAP"}
-                </button>
-
-                <button onClick={insertHeap}>
-                  INSERT
-                </button>
-
-                <button onClick={extractRoot}>
-                  EXTRACT ROOT
-                </button>
-                <button onClick={deleteHeapNode}>
-                  DELETE NODE
-                </button>
-
-                <button onClick={heapSort}>
-                  HEAP SORT
-                </button>
-
-                <button onClick={() => setHeap([])}>
-                  RESET
-                </button>
-              </div>
+                  }},
+                  { label: "RESET", onClick: () => setHeap([]), isDanger: true }
+                ]}
+              />
             </>
           )}
         </>
       )}
-
-      {gameStarted && (
-        <div
-          style={{
-            position: "absolute",
-            top: "12px",
-            left: "50%",
-            transform: "translateX(-50%)",
-            display: "flex",
-            flexDirection: "row",
-            gap: "6px",
-            zIndex: 300,
-            padding: "8px 10px",
-            borderRadius: "999px",
-            background: "rgba(15,23,42,0.72)",
-            backdropFilter: "blur(14px)",
-            boxShadow: "0 10px 35px rgba(0,0,0,0.35)",
-            border: "1px solid rgba(255,255,255,0.08)",
-            maxWidth: "90vw",
-            overflowX: "auto",
-            overflowY: "hidden",
-            whiteSpace: "nowrap",
-          }}
-        >
-          <div
-            style={{
-              minWidth: "160px",
-              padding: "8px 14px",
-              borderRadius: "999px",
-              background: "rgba(34,211,238,0.08)",
-              border: "1px solid rgba(34,211,238,0.15)",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "center",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                color: "white",
-                fontSize: "12px",
-                fontWeight: "bold",
-                marginBottom: "4px",
-              }}
-            >
-              <span>{rank}</span>
-              <span>Lv.{level}</span>
-            </div>
-
-            <div
-              style={{
-                height: "6px",
-                background: "rgba(255,255,255,0.08)",
-                borderRadius: "999px",
-                overflow: "hidden",
-              }}
-            >
-              <div
-                style={{
-                  width: `${Math.min((xp % 500) / 5, 100)}%`,
-                  height: "100%",
-                  background: "linear-gradient(90deg,#22d3ee,#6366f1)",
-                  transition: "width 0.35s ease",
-                }}
-              />
-            </div>
-            <div
-              style={{
-                textAlign: "center",
-                color: "#94a3b8",
-                fontSize: "10px",
-                marginTop: "3px",
-              }}
-            >
-              {xp} XP
-            </div>
-          </div>
-          <button
-            onClick={() =>
-              switchWorld("tree", "ENTERING TREE NEXUS")
-            }
-            style={{
-              padding: "10px 14px",
-              borderRadius: "999px",
-              border: "none",
-              background:
-                currentWorld === "tree"
-                  ? "#14b8a6"
-                  : "#1e293b",
-              color: "white",
-              cursor: "pointer",
-              fontWeight: "bold",
-              minWidth: "88px",
-              fontSize: "14px",
-              letterSpacing: "1px",
-              transition: "all 0.25s ease",
-              boxShadow:
-                currentWorld === "tree"
-                  ? "0 0 20px rgba(20,184,166,0.6)"
-                  : "none",
-            }}
-          >
-            🌳 Tree
-          </button>
-          <button
-            onClick={() =>
-              switchWorld(
-                "linkedlist",
-                "ENTERING LINKED LIST FOREST"
-              )
-            }
-            style={{
-              padding: "10px 14px",
-              borderRadius: "999px",
-              border: "none",
-              background:
-                currentWorld === "linkedlist"
-                  ? "#22c55e"
-                  : "#1e293b",
-              color: "white",
-              cursor: "pointer",
-              fontWeight: "bold",
-              minWidth: "88px",
-              fontSize: "14px",
-              letterSpacing: "1px",
-              transition: "all 0.25s ease",
-              boxShadow:
-                currentWorld === "linkedlist"
-                  ? "0 0 20px rgba(34,197,94,0.6)"
-                  : "none",
-            }}
-          >
-            🌲 Linked List
-          </button>
-          <button
-            onClick={() =>
-              switchWorld("stack", "ENTERING STACK KINGDOM")
-            }
-            style={{
-              padding: "10px 14px",
-              borderRadius: "999px",
-              border: "none",
-              background:
-                currentWorld === "stack"
-                  ? "#22d3ee"
-                  : "#1e293b",
-              color: "white",
-              cursor: "pointer",
-              fontWeight: "bold",
-              minWidth: "88px",
-              fontSize: "14px",
-              letterSpacing: "1px",
-              transition: "all 0.25s ease",
-              boxShadow:
-                currentWorld === "stack"
-                  ? "0 0 20px rgba(34,211,238,0.6)"
-                  : "none",
-            }}
-          >
-            📚 Stack
-          </button>
-          <button
-            onClick={() =>
-              switchWorld("queue", "ENTERING QUEUE CITY")
-            }
-            style={{
-              padding: "10px 14px",
-              borderRadius: "999px",
-              border: "none",
-              background:
-                currentWorld === "queue"
-                  ? "#a855f7"
-                  : "#1e293b",
-              color: "white",
-              cursor: "pointer",
-              fontWeight: "bold",
-              minWidth: "88px",
-              fontSize: "14px",
-              letterSpacing: "1px",
-              transition: "all 0.25s ease",
-              boxShadow:
-                currentWorld === "queue"
-                  ? "0 0 20px rgba(168,85,247,0.6)"
-                  : "none",
-            }}
-          >
-            📬 Queue
-          </button>
-          <button
-            onClick={() =>
-              switchWorld("graph", "ENTERING GRAPH REALM")
-            }
-            style={{
-              padding: "10px 14px",
-              borderRadius: "999px",
-              border: "none",
-              background:
-                currentWorld === "graph"
-                  ? "#6366f1"
-                  : "#1e293b",
-              color: "white",
-              cursor: "pointer",
-              fontWeight: "bold",
-              minWidth: "88px",
-              fontSize: "14px",
-              letterSpacing: "1px",
-              boxShadow:
-                currentWorld === "graph"
-                  ? "0 0 20px rgba(99,102,241,0.6)"
-                  : "none",
-            }}
-          >
-            🌐 Graph
-          </button>
-          <button
-            onClick={() =>
-              switchWorld("heap", "ENTERING HEAP CITADEL")
-            }
-            style={{
-              padding: "10px 14px",
-              borderRadius: "999px",
-              border: "none",
-              background:
-                currentWorld === "heap"
-                  ? "#f97316"
-                  : "#1e293b",
-              color: "white",
-              cursor: "pointer",
-              fontWeight: "bold",
-              minWidth: "88px",
-              fontSize: "14px",
-              letterSpacing: "1px",
-              boxShadow:
-                currentWorld === "heap"
-                  ? "0 0 20px rgba(249,115,22,0.6)"
-                  : "none",
-            }}
-          >
-            🌋 Heap
-          </button>
-          <button
-            onClick={() => setShowAchievements(true)}
-            style={{
-              padding: "10px 14px",
-              borderRadius: "999px",
-              border: "none",
-              background: "#f59e0b",
-              color: "white",
-              cursor: "pointer",
-              fontWeight: "bold",
-              minWidth: "88px",
-              boxShadow:
-                "0 0 20px rgba(245,158,11,0.35)",
-              fontSize: "14px",
-              letterSpacing: "1px",
-            }}
-          >
-            🏆 Awards
-          </button>
-        </div>
-      )}
-
-      <div
-        style={{
-          position: "absolute",
-          top: "18px",
-          right: "20px",
-          zIndex: 400,
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-          padding: "8px 10px",
-          borderRadius: "999px",
-          background: "rgba(15,23,42,0.72)",
-          backdropFilter: "blur(14px)",
-          border: "1px solid rgba(255,255,255,0.08)",
-        }}
-      >
-        <span
-          style={{
-            color: "white",
-            fontWeight: "bold",
-            maxWidth: "120px",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
-        >
-          👤 {user?.email?.split('@')[0]}
-        </span>
-
-        <button
-          onClick={() => signOut(auth)}
-          style={{
-            padding: "8px 12px",
-            borderRadius: "999px",
-            border: "none",
-            background: "#ef4444",
-            color: "white",
-            cursor: "pointer",
-            fontWeight: "bold",
-            fontSize: "13px",
-            width: "36px",
-            height: "36px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "0",
-          }}
-        >
-          ⏻
-        </button>
-      </div>
 
       {achievementPopup && (
         <div
@@ -2126,15 +1525,40 @@ export default function App() {
             onClick={(e) => e.stopPropagation()}
             style={{
               background: "#0f172a",
-              padding: "24px",
-              borderRadius: "20px",
-              minWidth: "520px",
-              maxWidth: "600px",
+              padding: "32px",
+              borderRadius: "24px",
+              minWidth: "600px",
+              maxWidth: "800px",
               color: "white",
               border: "1px solid rgba(245,158,11,0.3)",
+              boxShadow: "0 20px 40px rgba(0,0,0,0.5)",
+              position: "relative",
             }}
           >
-            <h2>🏆 ACHIEVEMENTS</h2>
+            <button
+              onClick={() => setShowAchievements(false)}
+              style={{
+                position: "absolute",
+                top: "24px",
+                right: "24px",
+                background: "transparent",
+                border: "none",
+                color: "#94a3b8",
+                fontSize: "28px",
+                cursor: "pointer",
+                padding: "4px",
+                lineHeight: 1,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transition: "color 0.2s"
+              }}
+              onMouseEnter={(e) => e.target.style.color = "white"}
+              onMouseLeave={(e) => e.target.style.color = "#94a3b8"}
+            >
+              ×
+            </button>
+            <h2 style={{ marginTop: 0 }}>🏆 ACHIEVEMENTS</h2>
             <p
               style={{
                 color: "#fbbf24",
@@ -2146,48 +1570,78 @@ export default function App() {
             </p>
             <div
               style={{
-                background: "rgba(255,255,255,0.05)",
-                padding: "14px",
-                borderRadius: "14px",
-                marginBottom: "20px",
+                display: "grid",
+                gridTemplateColumns: "repeat(3, 1fr)",
+                gap: "10px",
+                marginBottom: "24px",
               }}
             >
-              <div>Total Pushes: {pushCount}</div>
-              <div>Total Enqueues: {enqueueCount}</div>
-              <div>BFS Runs: {bfsCount}</div>
-              <div>DFS Runs: {dfsCount}</div>
-              <div>Heap Inserts: {heapInsertCount}</div>
-              <div>Heap Extracts: {heapExtractCount}</div>
+              {[
+                { label: "Pushes", value: pushCount },
+                { label: "Enqueues", value: enqueueCount },
+                { label: "BFS Runs", value: bfsCount },
+                { label: "DFS Runs", value: dfsCount },
+                { label: "Heap Inserts", value: heapInsertCount },
+                { label: "Heap Extracts", value: heapExtractCount },
+              ].map((stat, i) => (
+                <div
+                  key={i}
+                  style={{
+                    background: "rgba(255,255,255,0.05)",
+                    padding: "12px",
+                    borderRadius: "12px",
+                    textAlign: "center",
+                    border: "1px solid rgba(255,255,255,0.1)",
+                  }}
+                >
+                  <div style={{ fontSize: "12px", opacity: 0.7 }}>{stat.label}</div>
+                  <div style={{ fontSize: "18px", fontWeight: "bold", color: "#f59e0b", marginTop: "4px" }}>{stat.value}</div>
+                </div>
+              ))}
             </div>
+            
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "14px",
+                maxHeight: "45vh",
+                overflowY: "auto",
+                paddingRight: "8px",
+              }}
+            >
             {achievements.map((achievement) => (
               <div
                 key={achievement.name}
                 style={{
-                  marginBottom: "14px",
                   padding: "12px",
                   borderRadius: "14px",
                   background: achievement.unlocked
                     ? "rgba(245,158,11,0.15)"
-                    : "transparent",
+                    : "rgba(15,23,42,0.6)",
                   boxShadow: achievement.unlocked
-                    ? "0 0 20px rgba(245,158,11,0.25)"
+                    ? "0 0 20px rgba(245,158,11,0.2)"
                     : "none",
                   border: achievement.unlocked
                     ? "1px solid rgba(245,158,11,0.3)"
                     : "1px solid rgba(255,255,255,0.05)",
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "space-between"
                 }}
               >
-                <strong>
-                  {achievement.unlocked ? "✅" : "🔒"} {achievement.icon} {achievement.name}
-                </strong>
-                <div>{achievement.progress}</div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                  <strong style={{ fontSize: "14px" }}>
+                    {achievement.unlocked ? "✅" : "🔒"} {achievement.icon} {achievement.name}
+                  </strong>
+                  <span style={{ fontSize: "12px", opacity: 0.8 }}>{achievement.progress}</span>
+                </div>
                 <div
                   style={{
                     width: "100%",
-                    height: "10px",
-                    background: "#1e293b",
+                    height: "8px",
+                    background: "rgba(0,0,0,0.3)",
                     borderRadius: "999px",
-                    marginTop: "8px",
                     overflow: "hidden",
                   }}
                 >
@@ -2214,6 +1668,7 @@ export default function App() {
                 </div>
               </div>
             ))}
+            </div>
           </div>
         </div>
       )}
@@ -2225,6 +1680,7 @@ export default function App() {
         }
         completed={missionCompleted}
       />
+      </div>
     </>
   );
 }

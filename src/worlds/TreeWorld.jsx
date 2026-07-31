@@ -182,7 +182,7 @@ export default function TreeWorld({
       style={{
         width: "100%",
         height: "100%",
-        background: "#020617",
+        background: "transparent",
       }}
     >
       <ambientLight intensity={3} />
