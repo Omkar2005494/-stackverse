@@ -92,7 +92,7 @@ export default function StackWorld({
         ]}
       />
 
-      {transitions((style, item, t, index) => (
+      {transitions((style, item, t) => (
         <Box
           key={t.key}
           style={style}

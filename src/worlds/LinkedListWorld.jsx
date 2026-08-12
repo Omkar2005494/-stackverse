@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { useEffect } from "react";
+import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Text, Float, Line, QuadraticBezierLine, ContactShadows } from "@react-three/drei";
 import { animated, useTransition, useSpring } from "@react-spring/three";
 import * as THREE from "three";

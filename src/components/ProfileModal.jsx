@@ -1,12 +1,9 @@
-import React from "react";
 import { useGameProgress } from "../context/GameProgressContext";
 
 export default function ProfileModal({
   isOpen,
   onClose,
 }) {
-  if (!isOpen) return null;
-
   const {
     xp,
     level,
@@ -15,6 +12,8 @@ export default function ProfileModal({
     stats,
     streakCount,
   } = useGameProgress();
+
+  if (!isOpen) return null;
 
   const xpPercent = Math.min((xp / 2000) * 100, 100);
 

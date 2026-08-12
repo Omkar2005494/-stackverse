@@ -203,6 +203,7 @@ export default function GraphWorld({
     if (nodes.length >= 5) {
       unlockAchievement("🌐 Graph Explorer");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nodes.length]);
 
   const nodePositions = Object.fromEntries(

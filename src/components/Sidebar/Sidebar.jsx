@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { PanelLeftClose, PanelLeftOpen, LogOut, Settings, User, Trophy } from 'lucide-react';
+import { PanelLeftClose, PanelLeftOpen, LogOut, User, Trophy } from 'lucide-react';
 import { worldsConfig } from '../../data/worldsConfig';
 import SidebarItem from './SidebarItem';
 

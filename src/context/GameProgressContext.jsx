@@ -1,3 +1,6 @@
+/* eslint-disable react-refresh/only-export-components */
+/* eslint-disable react-hooks/exhaustive-deps */
+ 
 import { createContext, useContext, useEffect, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../firebase/firebase";
@@ -34,6 +37,40 @@ export function GameProgressProvider({ children }) {
 
   const [uid, setUid] = useState(null);
   const [isLoaded, setIsLoaded] = useState(false);
+
+  const addXP = (amount) => {
+    setXp((prev) => {
+      const newXP = prev + amount;
+      const newLevel = Math.floor(newXP / 500) + 1;
+
+      if (newLevel > level) {
+        setLevelReached(newLevel);
+        setShowLevelUp(true);
+
+        setTimeout(() => {
+          setShowLevelUp(false);
+        }, 2000);
+      }
+
+      setLevel(newLevel);
+      return newXP;
+    });
+  };
+
+  const unlockAchievement = (achievement) => {
+    setAchievements((prev) =>
+      prev.includes(achievement)
+        ? prev
+        : [...prev, achievement]
+    );
+  };
+
+  const incrementStat = (statName, amount = 1) => {
+    setStats((prev) => ({
+      ...prev,
+      [statName]: (prev[statName] || 0) + amount,
+    }));
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -100,40 +137,6 @@ export function GameProgressProvider({ children }) {
 
     return () => unsubscribe();
   }, []);
-
-  const addXP = (amount) => {
-    setXp((prev) => {
-      const newXP = prev + amount;
-      const newLevel = Math.floor(newXP / 500) + 1;
-
-      if (newLevel > level) {
-        setLevelReached(newLevel);
-        setShowLevelUp(true);
-
-        setTimeout(() => {
-          setShowLevelUp(false);
-        }, 2000);
-      }
-
-      setLevel(newLevel);
-      return newXP;
-    });
-  };
-
-  const unlockAchievement = (achievement) => {
-    setAchievements((prev) =>
-      prev.includes(achievement)
-        ? prev
-        : [...prev, achievement]
-    );
-  };
-
-  const incrementStat = (statName, amount = 1) => {
-    setStats((prev) => ({
-      ...prev,
-      [statName]: (prev[statName] || 0) + amount,
-    }));
-  };
 
   useEffect(() => {
     if (!uid || !isLoaded) return;

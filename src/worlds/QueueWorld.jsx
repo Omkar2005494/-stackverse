@@ -1,8 +1,7 @@
-import { Canvas, useFrame } from "@react-three/fiber";
-import { OrbitControls, Text, ContactShadows } from "@react-three/drei";
-import { animated, useTransition } from "@react-spring/three";
-import { useRef } from "react";
-import NeonLane from "../components/NeonLane";
+import { Canvas } from "@react-three/fiber";
+import { OrbitControls, ContactShadows, Text, Float } from "@react-three/drei";
+import { useTransition, animated } from "@react-spring/three";
+import React, { useMemo } from "react";
 import CityTower from "../components/CityTower";
 
 // --- Components ---
@@ -152,7 +151,7 @@ export default function QueueWorld({ queue, shake }) {
 
   const transitions = useTransition(queue, {
     keys: (item) => item.id,
-    from: (item, index) => ({
+    from: () => ({
       position: [ENTRY_X, 2, 0],
       scale: [0.2, 0.2, 0.2],
       rotation: [0, 0, Math.PI / 2],
