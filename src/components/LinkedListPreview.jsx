@@ -1,19 +1,19 @@
 import { useEffect, useState } from "react";
 
-export default function LinkedListPreview() {
-  const modes = ["Singly", "Doubly", "Circular"];
+const MODES = ["Singly", "Doubly", "Circular"];
 
+export default function LinkedListPreview() {
   const [modeIndex, setModeIndex] = useState(0);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setModeIndex((prev) => (prev + 1) % modes.length);
+      setModeIndex((prev) => (prev + 1) % MODES.length);
     }, 2500);
 
     return () => clearInterval(interval);
   }, []);
 
-  const mode = modes[modeIndex];
+  const mode = MODES[modeIndex];
 
   return (
     <div

@@ -11,19 +11,19 @@ import HeapWorld from "./worlds/HeapWorld";
 import LinkedListWorld from "./worlds/LinkedListWorld";
 import HUD from "./components/HUD";
 import OperationsPanel from "./components/OperationsPanel";
-import LevelPopup from "./components/LevelPopup";
 import LevelUpPopup from "./components/LevelUpPopup";
 import WarningPopup from "./components/WarningPopup";
+import PeekPopup from "./components/PeekPopup";
 import CyberBackground from "./components/CyberBackground";
-import MissionPanel from "./components/MissionPanel";
-import ComboPopup from "./components/ComboPopup";
 import FloatingXP from "./components/FloatingXP";
 import Shockwave from "./components/Shockwave";
 import LearningPanel from "./components/LearningPanel";
 import MainMenu from "./components/MainMenu";
 import Login from "./components/Login";
+import CharacterSetupModal from "./components/CharacterSetupModal";
 import GraphPreview from "./components/GraphPreview";
 import Sidebar from "./components/Sidebar/Sidebar";
+import CodeStudio from "./components/CodeStudio/CodeStudio";
 import { missions } from "./game/missions";
 import { useAuth } from "./hooks/useAuth";
 import { loadProgress, saveProgress } from "./hooks/useProgress";
@@ -36,10 +36,21 @@ import { useTreeLogic } from "./hooks/useTreeLogic";
 import { useHeapLogic } from "./hooks/useHeapLogic";
 import { useGraphLogic } from "./hooks/useGraphLogic";
 import { useGameProgress } from "./context/GameProgressContext";
+import { soundFX } from "./utils/soundFX";
 
 
 export default function App() {
   const isMobile = window.innerWidth < 768;
+  const [showCharacterSetup, setShowCharacterSetup] = useState(false);
+  const [userProfile, setUserProfile] = useState(() => {
+    try {
+      const saved = localStorage.getItem("stackverse_current_profile");
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
   const {
     xp,
     level,
@@ -47,9 +58,10 @@ export default function App() {
     addXP,
     showLevelUp,
     levelReached,
+    resetGameProgress,
   } = useGameProgress();
-  const { stack, setStack, peekBlock, clearStack } = useStackLogic();
-  const { queue, setQueue, peekQueue, clearQueue } = useQueueLogic();
+  const { stack, setStack, isPeeking, peekBlock, clearStack } = useStackLogic();
+  const { queue, setQueue, isPeekingQueue, peekQueue, clearQueue } = useQueueLogic();
   const {
     treeNodes,
     setTreeNodes,
@@ -77,7 +89,6 @@ export default function App() {
     graphEdges,
     setGraphEdges,
     vertexInput,
-    setVertexInput,
     edgeInput,
     setEdgeInput,
     startVertex,
@@ -85,7 +96,6 @@ export default function App() {
     endVertex,
     setEndVertex,
     shortestPath,
-    setShortestPath,
     addVertex,
     deleteVertex,
     addEdge,
@@ -97,19 +107,17 @@ export default function App() {
   } = useGraphLogic();
   const {
     heap,
-    setHeap,
-    heapInput,
-    setHeapInput,
     heapInsertCount,
-    setHeapInsertCount,
     heapExtractCount,
-    setHeapExtractCount,
     heapType,
-    setHeapType,
-    swappedNodes,
-    setSwappedNodes,
     heapSortResult,
-    setHeapSortResult,
+    highlightedIndex: heapHighlightedIndex,
+    insertHeap,
+    extractRoot,
+    deleteHeapNode,
+    heapSort,
+    toggleHeapType,
+    resetHeap,
   } = useHeapLogic();
   // XP and level are now managed by GameProgressContext
   const [warning, setWarning] = useState("");
@@ -130,8 +138,16 @@ export default function App() {
   const [currentOperation, setCurrentOperation] = useState("None");
   const [timeComplexity, setTimeComplexity] = useState("-");
   const [spaceComplexity, setSpaceComplexity] = useState("-");
+  const [peekData, setPeekData] = useState({
+    isOpen: false,
+    value: null,
+    title: "TOP ELEMENT",
+    index: null,
+    world: "stack",
+  });
   const powerMode = combo >= 5;
-  const { user, authLoading } = useAuth();
+  const { user, authLoading, loginAsGuest, logoutGuest } = useAuth();
+  const isGuest = Boolean(user?.isAnonymous || user?.uid === "guest-adventurer");
   const [showSplash, setShowSplash] = useState(true);
   const {
     currentWorld,
@@ -149,10 +165,50 @@ export default function App() {
     return () => clearTimeout(timer);
   }, []);
 
+  // Guarantee every guest session starts 100% fresh from scratch and prompt character setup
+  useEffect(() => {
+    if (user) {
+      if (isGuest) {
+        if (typeof resetGameProgress === "function") resetGameProgress();
+        setStack([]);
+        setQueue([]);
+        if (typeof resetTree === "function") resetTree();
+        if (typeof resetHeap === "function") resetHeap();
+        if (typeof resetGraph === "function") resetGraph();
+        setPushCount(0);
+        setEnqueueCount(0);
+        setBfsCount(0);
+        setDfsCount(0);
+        setMissionIndex(0);
+        setUserProfile(null);
+        setShowCharacterSetup(true);
+        try {
+          localStorage.removeItem("stackverse-save");
+          localStorage.removeItem("stackverse_current_profile");
+        } catch (e) {
+          console.warn(e);
+        }
+      } else {
+        try {
+          const key = `stackverse_profile_${user.uid}`;
+          const saved = localStorage.getItem(key) || localStorage.getItem("stackverse_current_profile");
+          if (saved) {
+            setUserProfile(JSON.parse(saved));
+          } else {
+            setShowCharacterSetup(true);
+          }
+        } catch {
+          setShowCharacterSetup(true);
+        }
+      }
+    }
+  }, [user, isGuest]);
+
   const currentMission = missions[missionIndex];
 
-
   useEffect(() => {
+    if (isGuest) return; // Strictly ignore previous saved progress for guest sessions
+
     const parsed = loadProgress();
 
     if (!parsed) return;
@@ -167,7 +223,7 @@ export default function App() {
     setUnlockedAchievements(
       parsed.unlockedAchievements || []
     );
-  }, []);
+  }, [user, isGuest]);
 
   const missionCompleted = currentMission.check(
     stack,
@@ -189,6 +245,8 @@ export default function App() {
 
 
   useEffect(() => {
+    if (isGuest) return; // Do not save guest state over registered player save
+
     saveProgress({
       xp,
       level,
@@ -210,6 +268,7 @@ export default function App() {
     bfsCount,
     dfsCount,
     unlockedAchievements,
+    isGuest,
   ]);
 
   // Clear traversal result and highlighted node when switching worlds
@@ -219,7 +278,6 @@ export default function App() {
   }, [currentWorld]);
 
   const xpProgress = (xp % 50) * 2;
-  const allMissionsCompleted = missionIndex >= missions.length - 1 && missionCompleted;
   const achievements = achievementsConfig.map((achievement) => {
     const value = {
       pushCount,
@@ -268,6 +326,7 @@ export default function App() {
 
   const pushBlock = (val = null) => {
     if (stack.length >= 5) {
+      soundFX.playWarning();
       setWarning("STACK OVERFLOW!");
       setShake(true);
 
@@ -283,6 +342,7 @@ export default function App() {
     const newStack = [...stack, newValue];
     setStack(newStack);
     setPushCount((prev) => prev + 1);
+    soundFX.playPush();
     
     setCurrentOperation("Push");
     setTimeComplexity("O(1)");
@@ -303,6 +363,7 @@ export default function App() {
 
   const popBlock = () => {
     if (stack.length <= 0) {
+      soundFX.playWarning();
       setWarning("STACK UNDERFLOW!");
       setShake(true);
 
@@ -316,6 +377,7 @@ export default function App() {
 
     setCombo(0);
     setStack(stack.slice(0, -1));
+    soundFX.playPop();
 
     setCurrentOperation("Pop");
     setTimeComplexity("O(1)");
@@ -325,6 +387,7 @@ export default function App() {
 
   const enqueue = (val = null) => {
     if (queue.length >= 5) {
+      soundFX.playWarning();
       setWarning("QUEUE OVERFLOW!");
       setShake(true);
 
@@ -340,6 +403,7 @@ export default function App() {
     const newQueue = [...queue, { id: crypto.randomUUID(), value: newValue }];
     setQueue(newQueue);
     setEnqueueCount((prev) => prev + 1);
+    soundFX.playPush();
 
     setCurrentOperation("Enqueue");
     setTimeComplexity("O(1)");
@@ -362,6 +426,7 @@ export default function App() {
 
   const dequeue = () => {
     if (queue.length <= 0) {
+      soundFX.playWarning();
       setWarning("QUEUE UNDERFLOW!");
       setShake(true);
 
@@ -374,6 +439,7 @@ export default function App() {
     }
 
     setQueue(queue.slice(1));
+    soundFX.playPop();
     setCombo(0);
 
     setCurrentOperation("Dequeue");
@@ -384,190 +450,70 @@ export default function App() {
 
 
 
-  const insertHeap = (val) => {
-    const value = val !== undefined ? Number(val) : Number(heapInput);
-
-    if ((val === undefined && heapInput.trim() === "") || Number.isNaN(value)) {
+  const handleInsertHeap = (val) => {
+    const res = insertHeap(val);
+    if (!res.success) {
+      setWarning(res.message);
+      setTimeout(() => setWarning(""), 1500);
       return;
     }
-
-    if (heap.length >= 15) {
-      setWarning("HEAP FULL");
-
-      setTimeout(() => {
-        setWarning("");
-      }, 1500);
-
-      return;
-    }
-    const newHeap = [...heap, value];
-
-    let index = newHeap.length - 1;
-
-    while (index > 0) {
-      const parent = Math.floor((index - 1) / 2);
-
-      const correctOrder =
-        heapType === "min"
-          ? newHeap[parent] <= newHeap[index]
-          : newHeap[parent] >= newHeap[index];
-
-      if (correctOrder) {
-        break;
-      }
-
-      [newHeap[parent], newHeap[index]] = [
-        newHeap[index],
-        newHeap[parent],
-      ];
-
-      index = parent;
-    }
-
-    setHeapInsertCount((prev) => prev + 1);
     addXP(10);
-    setHeap(newHeap);
-    setHeapInput("");
-
     setCurrentOperation("Insert");
     setTimeComplexity("O(log n)");
     setSpaceComplexity("O(1)");
-    setActualSteps(Math.ceil(Math.log2(newHeap.length || 2)));
+    setActualSteps(res.steps || 1);
   };
 
-  const extractRoot = () => {
-    if (heap.length === 0) return;
-
-    if (heap.length === 1) {
-      setHeap([]);
+  const handleExtractRoot = () => {
+    const res = extractRoot();
+    if (!res.success) {
+      setWarning(res.message);
+      setTimeout(() => setWarning(""), 1500);
       return;
     }
-
-    const newHeap = [...heap];
-
-    newHeap[0] = newHeap[newHeap.length - 1];
-    newHeap.pop();
-
-    let index = 0;
-
-    while (true) {
-      const left = index * 2 + 1;
-      const right = index * 2 + 2;
-
-      let target = index;
-
-      if (
-        left < newHeap.length &&
-        (heapType === "min"
-          ? newHeap[left] < newHeap[target]
-          : newHeap[left] > newHeap[target])
-      ) {
-        target = left;
-      }
-
-      if (
-        right < newHeap.length &&
-        (heapType === "min"
-          ? newHeap[right] < newHeap[target]
-          : newHeap[right] > newHeap[target])
-      ) {
-        target = right;
-      }
-
-      if (target === index) {
-        break;
-      }
-
-      [newHeap[index], newHeap[target]] = [
-        newHeap[target],
-        newHeap[index],
-      ];
-
-      index = target;
-    }
-
-    setHeapExtractCount((prev) => prev + 1);
     addXP(10);
-    setHeap(newHeap);
-
     setCurrentOperation("Extract Root");
     setTimeComplexity("O(log n)");
     setSpaceComplexity("O(1)");
-    setActualSteps(Math.ceil(Math.log2(newHeap.length || 2)));
+    setActualSteps(res.steps || 1);
   };
 
-  const deleteHeapNode = (val) => {
-    const value = val !== undefined ? Number(val) : Number(heapInput);
-
-    if ((val === undefined && heapInput.trim() === "") || Number.isNaN(value)) {
+  const handleDeleteHeapNode = (val) => {
+    const res = deleteHeapNode(val);
+    if (!res.success) {
+      setWarning(res.message);
+      setTimeout(() => setWarning(""), 1500);
       return;
     }
-
-    const index = heap.indexOf(value);
-
-    if (index === -1) {
-      setWarning("VALUE NOT FOUND");
-
-      setTimeout(() => {
-        setWarning("");
-      }, 1500);
-
-      return;
-    }
-
-    const values = heap.filter((_, i) => i !== index);
-
-    const rebuiltHeap = [];
-
-    values.forEach((num) => {
-      rebuiltHeap.push(num);
-
-      let current = rebuiltHeap.length - 1;
-
-      while (current > 0) {
-        const parent = Math.floor((current - 1) / 2);
-
-        const correctOrder =
-          heapType === "min"
-            ? rebuiltHeap[parent] <= rebuiltHeap[current]
-            : rebuiltHeap[parent] >= rebuiltHeap[current];
-
-        if (correctOrder) {
-          break;
-        }
-
-        [rebuiltHeap[parent], rebuiltHeap[current]] = [
-          rebuiltHeap[current],
-          rebuiltHeap[parent],
-        ];
-
-        current = parent;
-      }
-    });
-
-    setHeap(rebuiltHeap);
-    setHeapInput("");
     addXP(10);
-
     setCurrentOperation("Delete Node");
     setTimeComplexity("O(n)");
     setSpaceComplexity("O(n)");
-    setActualSteps(heap.length);
+    setActualSteps(res.steps || 1);
   };
 
-  const heapSort = () => {
-    const sorted = [...heap].sort((a, b) => a - b);
-
-    setHeapSortResult(
-      `SORTED: ${sorted.join(" → ")}`
-    );
-
+  const handleHeapSort = () => {
+    const res = heapSort();
     addXP(20);
-
     setCurrentOperation("Heap Sort");
     setTimeComplexity("O(n log n)");
     setSpaceComplexity("O(1)");
-    setActualSteps(heap.length);
+    setActualSteps(res.steps || 1);
+  };
+
+  const handleToggleHeapType = () => {
+    const res = toggleHeapType();
+    setWarning(res.type === "min" ? "SWITCHED TO MIN HEAP" : "SWITCHED TO MAX HEAP");
+    setTimeout(() => setWarning(""), 1500);
+    addXP(5);
+  };
+
+  const handleResetHeap = () => {
+    resetHeap();
+    setCurrentOperation("Reset");
+    setTimeComplexity("O(1)");
+    setSpaceComplexity("O(1)");
+    setActualSteps(0);
   };
 
   const handleGraphBFS = async () => {
@@ -583,9 +529,11 @@ export default function App() {
     setTraversalResult(`GRAPH BFS: ${result.join(" → ")}`);
     setBfsCount((prev) => prev + 1);
 
-    for (const node of result) {
+    for (let i = 0; i < result.length; i++) {
+      const node = result[i];
       const index = graphNodes.indexOf(node);
       setHighlightedNode(index);
+      soundFX.playTreeStep(i);
       await new Promise((resolve) => setTimeout(resolve, 500));
     }
 
@@ -605,9 +553,11 @@ export default function App() {
     setTraversalResult(`GRAPH DFS: ${result.join(" → ")}`);
     setDfsCount((prev) => prev + 1);
 
-    for (const node of result) {
+    for (let i = 0; i < result.length; i++) {
+      const node = result[i];
       const index = graphNodes.indexOf(node);
       setHighlightedNode(index);
+      soundFX.playTreeStep(i);
       await new Promise((resolve) => setTimeout(resolve, 500));
     }
 
@@ -629,10 +579,12 @@ export default function App() {
 
     setTraversalResult(`PATH: ${path.join(" → ")}`);
 
-    for (const node of path) {
+    for (let i = 0; i < path.length; i++) {
+      const node = path[i];
       const index = graphNodes.indexOf(node);
       setHighlightedNode(index);
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      soundFX.playTreeStep(i);
+      await new Promise((resolve) => setTimeout(resolve, 450));
     }
 
     setHighlightedNode(null);
@@ -650,8 +602,10 @@ export default function App() {
     setTraversalResult(`TREE BFS: ${result.join(" → ")}`);
     setBfsCount((prev) => prev + 1);
 
-    for (const node of result) {
+    for (let i = 0; i < result.length; i++) {
+      const node = result[i];
       setHighlightedNode(node);
+      soundFX.playTreeStep(i);
       await new Promise((resolve) => setTimeout(resolve, 500));
     }
 
@@ -670,8 +624,10 @@ export default function App() {
     setTraversalResult(`TREE DFS: ${result.join(" → ")}`);
     setDfsCount((prev) => prev + 1);
 
-    for (const node of result) {
+    for (let i = 0; i < result.length; i++) {
+      const node = result[i];
       setHighlightedNode(node);
+      soundFX.playTreeStep(i);
       await new Promise((resolve) => setTimeout(resolve, 500));
     }
 
@@ -689,8 +645,10 @@ export default function App() {
 
     setTraversalResult(`INORDER: ${result.join(" → ")}`);
 
-    for (const node of result) {
+    for (let i = 0; i < result.length; i++) {
+      const node = result[i];
       setHighlightedNode(node);
+      soundFX.playTreeStep(i);
       await new Promise((resolve) => setTimeout(resolve, 500));
     }
 
@@ -708,8 +666,10 @@ export default function App() {
 
     setTraversalResult(`PREORDER: ${result.join(" → ")}`);
 
-    for (const node of result) {
+    for (let i = 0; i < result.length; i++) {
+      const node = result[i];
       setHighlightedNode(node);
+      soundFX.playTreeStep(i);
       await new Promise((resolve) => setTimeout(resolve, 500));
     }
 
@@ -727,8 +687,10 @@ export default function App() {
 
     setTraversalResult(`POSTORDER: ${result.join(" → ")}`);
 
-    for (const node of result) {
+    for (let i = 0; i < result.length; i++) {
+      const node = result[i];
       setHighlightedNode(node);
+      soundFX.playTreeStep(i);
       await new Promise((resolve) => setTimeout(resolve, 500));
     }
 
@@ -865,12 +827,39 @@ export default function App() {
   }
 
   if (!user) {
-    return <Login />;
+    return <Login onGuestLogin={loginAsGuest} />;
   }
 
 
+  const handleSignOut = async () => {
+    soundFX.playPop();
+    try {
+      if (!isGuest && auth.currentUser) {
+        await signOut(auth);
+      }
+    } catch (e) {
+      console.warn("Sign out error:", e);
+    }
+    logoutGuest();
+    setUserProfile(null);
+    setShowCharacterSetup(false);
+    setGameStarted(false);
+  };
+
   return (
     <>
+      {showCharacterSetup && (
+        <CharacterSetupModal
+          user={user}
+          initialProfile={userProfile}
+          onComplete={(newProfile) => {
+            setUserProfile(newProfile);
+            setShowCharacterSetup(false);
+            setGameStarted(true);
+          }}
+        />
+      )}
+
       {!gameStarted && (
         <MainMenu
           onStart={() => setGameStarted(true)}
@@ -883,9 +872,11 @@ export default function App() {
           currentWorld={currentWorld}
           switchWorld={switchWorld}
           user={user}
+          userProfile={userProfile}
+          onOpenCharacterSetup={() => setShowCharacterSetup(true)}
           level={level}
           xp={xp}
-          signOut={() => signOut(auth)}
+          signOut={handleSignOut}
           setShowAchievements={setShowAchievements}
         />
       )}
@@ -893,15 +884,18 @@ export default function App() {
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
         <CyberBackground />
         
-        {currentWorld === "stack" ? (
-        <StackWorld
-          stack={stack}
-          shake={shake}
-          pushBlock={pushBlock}
-          powerMode={powerMode}
-        />
-      ) : currentWorld === "queue" ? (
-        <QueueWorld queue={queue} shake={shake} />
+        {currentWorld === "codestudio" ? (
+          <CodeStudio />
+        ) : currentWorld === "stack" ? (
+          <StackWorld
+            stack={stack}
+            shake={shake}
+            pushBlock={pushBlock}
+            powerMode={powerMode}
+            isPeeking={isPeeking}
+          />
+        ) : currentWorld === "queue" ? (
+          <QueueWorld queue={queue} shake={shake} isPeeking={isPeekingQueue} />
       ) : currentWorld === "tree" ? (
         <div
           style={{
@@ -939,16 +933,23 @@ export default function App() {
       ) : (
         <HeapWorld
           heap={heap}
-          swappedNodes={swappedNodes}
+          heapType={heapType}
+          highlightedIndex={heapHighlightedIndex}
         />
       )}
-      <LevelPopup show={showLevelUp} />
       <LevelUpPopup
         isOpen={showLevelUp}
         level={levelReached}
       />
       <WarningPopup warning={warning} />
-      <ComboPopup combo={combo} />
+      <PeekPopup
+        isOpen={peekData.isOpen}
+        value={peekData.value}
+        title={peekData.title}
+        index={peekData.index}
+        world={peekData.world}
+        onClose={() => setPeekData((prev) => ({ ...prev, isOpen: false }))}
+      />
       <FloatingXP
         show={showXP}
         amount={powerMode ? 20 : 10}
@@ -965,16 +966,19 @@ export default function App() {
         />
       )}
 
+      {currentWorld !== "codestudio" && gameStarted && (
+        <HUD
+          stack={stack}
+          xp={xp}
+          level={level}
+          combo={combo}
+          xpProgress={xpProgress}
+          powerMode={powerMode}
+        />
+      )}
+
       {currentWorld === "stack" && (
         <>
-          <HUD
-            stack={stack}
-            xp={xp}
-            level={level}
-            combo={combo}
-            xpProgress={xpProgress}
-            powerMode={powerMode}
-          />
           <div
             style={{
               position: "absolute",
@@ -1129,8 +1133,19 @@ export default function App() {
                 setSpaceComplexity("O(1)");
                 setActualSteps(1);
                 const res = peekBlock();
-                if (res?.success) alert(`PEEK Result: ${res.value}`);
-                else if (res?.message) alert(res.message);
+                if (res?.success) {
+                  setPeekData({
+                    isOpen: true,
+                    value: res.value,
+                    title: "STACK TOP ELEMENT",
+                    index: stack.length - 1,
+                    world: "stack",
+                  });
+                } else if (res?.message) {
+                  soundFX.playWarning();
+                  setWarning(res.message);
+                  setTimeout(() => setWarning(""), 1500);
+                }
               }
             },
             { label: "CLEAR", onClick: () => {
@@ -1157,8 +1172,20 @@ export default function App() {
                 setSpaceComplexity("O(1)");
                 setActualSteps(1);
                 const res = peekQueue();
-                if (res?.success) alert(`PEEK Result: ${res.value}`);
-                else if (res?.message) alert(res.message);
+                if (res?.success) {
+                  soundFX.playPeek();
+                  setPeekData({
+                    isOpen: true,
+                    value: res.value,
+                    title: "QUEUE FRONT ELEMENT",
+                    index: 0,
+                    world: "queue",
+                  });
+                } else if (res?.message) {
+                  soundFX.playWarning();
+                  setWarning(res.message);
+                  setTimeout(() => setWarning(""), 1500);
+                }
               }
             },
             { label: "CLEAR", onClick: () => {
@@ -1190,7 +1217,7 @@ export default function App() {
                   { 
                     label: "SEARCH", 
                     onClick: (val) => {
-                      const res = handleTreeSearch(val);
+                      handleTreeSearch(val);
                     }
                   },
                   { 
@@ -1250,20 +1277,56 @@ export default function App() {
                       <input 
                         value={edgeInput} 
                         onChange={(e) => setEdgeInput(e.target.value)} 
-                        placeholder="Edge (A-B)" 
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            addEdge();
+                          }
+                        }}
+                        placeholder="Edge (e.g. A-B)..." 
                         style={{ flex: 1, background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", padding: "10px 14px", color: "white", outline: "none", fontSize: "14px" }} 
                       />
+                      <button
+                        onClick={addEdge}
+                        style={{
+                          background: "linear-gradient(135deg, #6366f1, #4f46e5)",
+                          border: "none",
+                          borderRadius: "12px",
+                          color: "white",
+                          padding: "10px 16px",
+                          fontWeight: "bold",
+                          cursor: "pointer",
+                          fontSize: "12.5px",
+                          letterSpacing: "0.5px",
+                          whiteSpace: "nowrap",
+                          boxShadow: "0 0 15px rgba(99,102,241,0.4)",
+                        }}
+                      >
+                        ADD EDGE ↵
+                      </button>
                     </div>
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <input 
                         value={startVertex} 
                         onChange={(e) => setStartVertex(e.target.value)} 
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleShortestPath();
+                          }
+                        }}
                         placeholder="Start Node" 
                         style={{ flex: 1, background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", padding: "10px 14px", color: "white", outline: "none", fontSize: "14px" }} 
                       />
                       <input 
                         value={endVertex} 
                         onChange={(e) => setEndVertex(e.target.value)} 
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleShortestPath();
+                          }
+                        }}
                         placeholder="End Node" 
                         style={{ flex: 1, background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", padding: "10px 14px", color: "white", outline: "none", fontSize: "14px" }} 
                       />
@@ -1326,34 +1389,15 @@ export default function App() {
                 </div>
               )}
               <OperationsPanel
-                onInsert={(val) => insertHeap(val)}
+                onInsert={handleInsertHeap}
                 insertLabel="INSERT"
                 color="#f97316"
                 secondaryActions={[
-                  { label: "EXTRACT ROOT", onClick: extractRoot },
-                  { label: "DELETE NODE", onClick: (val) => deleteHeapNode(val), isDanger: true },
-                  { label: "HEAP SORT", onClick: heapSort },
-                  { label: "TOGGLE TYPE", onClick: () => {
-                    const nextType = heapType === "min" ? "max" : "min";
-                    setHeapType(nextType);
-                    setWarning(nextType === "min" ? "SWITCHED TO MIN HEAP" : "SWITCHED TO MAX HEAP");
-                    setTimeout(() => setWarning(""), 1500);
-                    const rebuiltHeap = [];
-                    heap.forEach((num) => {
-                      rebuiltHeap.push(num);
-                      let current = rebuiltHeap.length - 1;
-                      while (current > 0) {
-                        const parent = Math.floor((current - 1) / 2);
-                        const correctOrder = nextType === "min" ? rebuiltHeap[parent] <= rebuiltHeap[current] : rebuiltHeap[parent] >= rebuiltHeap[current];
-                        if (correctOrder) break;
-                        [rebuiltHeap[parent], rebuiltHeap[current]] = [rebuiltHeap[current], rebuiltHeap[parent]];
-                        current = parent;
-                      }
-                    });
-                    setHeap(rebuiltHeap);
-                    addXP(5);
-                  }},
-                  { label: "RESET", onClick: () => setHeap([]), isDanger: true }
+                  { label: "EXTRACT ROOT", onClick: handleExtractRoot },
+                  { label: "DELETE NODE", onClick: (val) => handleDeleteHeapNode(val), isDanger: true },
+                  { label: "HEAP SORT", onClick: handleHeapSort },
+                  { label: "TOGGLE TYPE", onClick: handleToggleHeapType },
+                  { label: "RESET", onClick: handleResetHeap, isDanger: true }
                 ]}
               />
             </>
@@ -1672,14 +1716,6 @@ export default function App() {
           </div>
         </div>
       )}
-      <MissionPanel
-        mission={
-          allMissionsCompleted
-            ? "ALL MISSIONS COMPLETED 🚀"
-            : currentMission.text
-        }
-        completed={missionCompleted}
-      />
       </div>
     </>
   );

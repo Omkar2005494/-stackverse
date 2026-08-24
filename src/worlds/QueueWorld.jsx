@@ -1,129 +1,254 @@
-import { Canvas } from "@react-three/fiber";
-import { OrbitControls, ContactShadows, Text, Float } from "@react-three/drei";
-import { useTransition, animated } from "@react-spring/three";
-import React, { useMemo } from "react";
-import CityTower from "../components/CityTower";
+import React, { useRef } from "react";
+import { Canvas, useFrame } from "@react-three/fiber";
+import { OrbitControls, ContactShadows, Text, RoundedBox } from "@react-three/drei";
+import { useTransition, animated, useSpring } from "@react-spring/three";
 
-// --- Components ---
+// --- Color Palette Gradient (Front Cyan -> Rear Violet) ---
+const POD_PALETTES = [
+  { main: "#06b6d4", emissive: "#0891b2", edge: "#67e8f9" }, // Front: Cyan
+  { main: "#3b82f6", emissive: "#2563eb", edge: "#93c5fd" }, // 1: Electric Blue
+  { main: "#8b5cf6", emissive: "#7c3aed", edge: "#c4b5fd" }, // 2: Indigo
+  { main: "#a855f7", emissive: "#9333ea", edge: "#d8b4fe" }, // 3: Purple
+  { main: "#ec4899", emissive: "#db2777", edge: "#f472b6" }, // 4: Magenta
+];
 
-function TransportPod({ position, scale, rotation, color, opacity, value }) {
+// --- 1. MagLev Shuttle Pod ---
+const MagLevPod = React.memo(function MagLevPod({
+  position,
+  scale,
+  rotation,
+  opacity,
+  value,
+  index = 0,
+  isPeeked = false,
+}) {
+  const meshRef = useRef();
+  const palette = POD_PALETTES[Math.min(index, POD_PALETTES.length - 1)];
+
+  // Spring animation for smooth 3D levitation during PEEK inspection
+  const { levitateY, glowIntensity } = useSpring({
+    levitateY: isPeeked ? 0.55 : 0,
+    glowIntensity: isPeeked ? 3.5 : 1.3,
+    config: { mass: 1, tension: 280, friction: 18 },
+  });
+
+  // Magnetic floating hover physics
+  useFrame((state) => {
+    if (meshRef.current) {
+      const t = state.clock.getElapsedTime();
+      meshRef.current.position.y = Math.sin(t * 3.5 + index * 0.8) * 0.04;
+    }
+  });
+
+  const isFront = index === 0;
+  const mainColor = isPeeked ? "#38bdf8" : palette.main;
+  const emissiveColor = isPeeked ? "#0284c7" : palette.emissive;
+  const edgeColor = isPeeked ? "#7dd3fc" : palette.edge;
+
   return (
     <animated.group position={position} scale={scale} rotation={rotation}>
-      {/* Metallic Frame */}
-      <mesh castShadow receiveShadow>
-        <boxGeometry args={[2.0, 1.4, 1.6]} />
-        <animated.meshStandardMaterial 
-          color="#0f172a" 
-          metalness={0.9} 
-          roughness={0.1} 
-          transparent
-          opacity={opacity}
-        />
-      </mesh>
+      <animated.group position-y={levitateY}>
+        <group ref={meshRef}>
+          {/* Aerodynamic Rounded MagLev Chassis */}
+          <RoundedBox
+            args={[2.1, 1.15, 1.45]}
+            radius={0.12}
+            smoothness={4}
+            castShadow
+            receiveShadow
+          >
+            <animated.meshStandardMaterial
+              color={mainColor}
+              emissive={emissiveColor}
+              emissiveIntensity={glowIntensity}
+              metalness={0.25}
+              roughness={0.15}
+              transparent
+              opacity={opacity}
+            />
+          </RoundedBox>
 
-      {/* Glass Inner Core */}
-      <mesh>
-        <boxGeometry args={[1.8, 1.2, 1.7]} />
-        <animated.meshPhysicalMaterial 
-          color={color} 
-          transmission={0.8} 
-          transparent
-          opacity={opacity} 
-          metalness={0.2}
-          roughness={0.1}
-          emissive={color}
-          emissiveIntensity={0.8}
-        />
-      </mesh>
+          {/* Glowing Neon Edge Wireframe Lattice */}
+          <mesh>
+            <boxGeometry args={[2.11, 1.16, 1.46]} />
+            <meshBasicMaterial
+              color={edgeColor}
+              wireframe
+              transparent
+              opacity={isPeeked ? 0.65 : 0.35}
+            />
+          </mesh>
 
-      {/* Value Text */}
-      <animated.group opacity={opacity}>
-        <Text
-          position={[0, 0, 0.86]}
-          fontSize={0.8}
-          color="#ffffff"
-          anchorX="center"
-          anchorY="middle"
-          outlineWidth={0.04}
-          outlineColor="#000000"
-        >
-          {value}
-        </Text>
+          {/* Front Bumper Light Stripe */}
+          <mesh position={[1.06, 0, 0]}>
+            <boxGeometry args={[0.04, 0.6, 1.2]} />
+            <meshBasicMaterial color="#ffffff" transparent opacity={0.9} />
+          </mesh>
+
+          {/* Front Element Status Badge */}
+          {isFront && (
+            <group position={[0, 0.85, 0]}>
+              <Text
+                fontSize={0.22}
+                color="#38bdf8"
+                fontWeight="900"
+                anchorX="center"
+                anchorY="middle"
+                outlineWidth={0.03}
+                outlineColor="#0b1329"
+              >
+                FRONT [0]
+              </Text>
+            </group>
+          )}
+
+          {/* Front & Back Face Laser Value */}
+          <Text
+            position={[0, 0, 0.74]}
+            fontSize={0.55}
+            color="#ffffff"
+            fontWeight="900"
+            anchorX="center"
+            anchorY="middle"
+            outlineWidth={0.04}
+            outlineColor="#0f172a"
+          >
+            {value}
+          </Text>
+          <Text
+            position={[0, 0, -0.74]}
+            rotation={[0, Math.PI, 0]}
+            fontSize={0.55}
+            color="#ffffff"
+            fontWeight="900"
+            anchorX="center"
+            anchorY="middle"
+            outlineWidth={0.04}
+            outlineColor="#0f172a"
+          >
+            {value}
+          </Text>
+        </group>
       </animated.group>
     </animated.group>
   );
-}
+});
 
-function ConveyorBelt() {
+// --- 2. High-Tech MagLev Conveyor Track with Directional Chevrons ---
+function AnimatedConveyorTrack() {
+  const chevronsRef = useRef();
+
+  useFrame((state) => {
+    if (chevronsRef.current) {
+      const t = state.clock.getElapsedTime();
+      // Flow chevrons rightward toward EXIT
+      chevronsRef.current.position.x = ((t * 2.5) % 2) - 1;
+    }
+  });
+
   return (
-    <group position={[0, -0.7, 0]}>
-      {/* Main Track */}
+    <group position={[0, -0.62, 0]}>
+      {/* Matte Dark Cyber Base Track */}
       <mesh receiveShadow position={[0, 0, 0]}>
-        <boxGeometry args={[24, 0.2, 4]} />
+        <boxGeometry args={[26, 0.22, 3.4]} />
         <meshStandardMaterial
           color="#020617"
-          metalness={0.8}
-          roughness={0.2}
+          metalness={0.3}
+          roughness={0.7}
         />
       </mesh>
-      {/* Neon Edges */}
-      <mesh position={[0, 0.1, 1.9]}>
-        <boxGeometry args={[24, 0.05, 0.1]} />
-        <meshStandardMaterial color="#22d3ee" emissive="#22d3ee" emissiveIntensity={2} />
+
+      {/* Dual Neon Guideway Borders */}
+      <mesh position={[0, 0.12, 1.62]}>
+        <boxGeometry args={[26, 0.08, 0.08]} />
+        <meshBasicMaterial color="#38bdf8" />
       </mesh>
-      <mesh position={[0, 0.1, -1.9]}>
-        <boxGeometry args={[24, 0.05, 0.1]} />
-        <meshStandardMaterial color="#22d3ee" emissive="#22d3ee" emissiveIntensity={2} />
+      <mesh position={[0, 0.12, -1.62]}>
+        <boxGeometry args={[26, 0.08, 0.08]} />
+        <meshBasicMaterial color="#38bdf8" />
       </mesh>
-      {/* Center glowing strip */}
-      <mesh position={[0, 0.11, 0]}>
-        <planeGeometry args={[24, 0.2]} />
-        <meshStandardMaterial color="#a855f7" emissive="#a855f7" emissiveIntensity={1.5} transparent opacity={0.6} rotation={[-Math.PI / 2, 0, 0]} />
+
+      {/* Center Directional Flow Strip */}
+      <mesh position={[0, 0.115, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[26, 0.5]} />
+        <meshBasicMaterial color="#a855f7" transparent opacity={0.35} />
       </mesh>
+
+      {/* Directional Flow Chevron Markers */}
+      <group ref={chevronsRef} position={[0, 0.125, 0]}>
+        {[-8, -5, -2, 1, 4].map((x) => (
+          <Text
+            key={x}
+            position={[x, 0, 0]}
+            rotation={[-Math.PI / 2, 0, 0]}
+            fontSize={0.42}
+            color="#38bdf8"
+            fontWeight="900"
+            anchorX="center"
+            anchorY="middle"
+          >
+            {"> > >"}
+          </Text>
+        ))}
+      </group>
     </group>
   );
 }
 
-function Gate({ position, color, label }) {
+// --- 3. Quantum Portal Gate ---
+function QuantumPortal({ position, color, label, isExit = false }) {
+  const irisRef = useRef();
+
+  useFrame((state) => {
+    if (irisRef.current) {
+      const t = state.clock.getElapsedTime();
+      irisRef.current.rotation.x = isExit ? t * 3 : -t * 3;
+    }
+  });
+
   return (
     <group position={position}>
-      {/* Pillars */}
-      <mesh position={[0, 1.5, 2.5]} castShadow>
-        <boxGeometry args={[1, 4, 1]} />
-        <meshStandardMaterial color="#0f172a" metalness={0.8} roughness={0.2} />
+      {/* Matte Dark Pillars */}
+      <mesh position={[0, 1.6, 2.1]} castShadow>
+        <boxGeometry args={[0.7, 3.6, 0.6]} />
+        <meshStandardMaterial color="#0f172a" metalness={0.4} roughness={0.6} />
       </mesh>
-      <mesh position={[0, 1.5, -2.5]} castShadow>
-        <boxGeometry args={[1, 4, 1]} />
-        <meshStandardMaterial color="#0f172a" metalness={0.8} roughness={0.2} />
+      <mesh position={[0, 1.6, -2.1]} castShadow>
+        <boxGeometry args={[0.7, 3.6, 0.6]} />
+        <meshStandardMaterial color="#0f172a" metalness={0.4} roughness={0.6} />
       </mesh>
-      {/* Arch */}
-      <mesh position={[0, 3.5, 0]} castShadow>
-        <boxGeometry args={[1, 1, 6]} />
-        <meshStandardMaterial color="#0f172a" metalness={0.8} roughness={0.2} />
+
+      {/* Top Header Beam */}
+      <mesh position={[0, 3.3, 0]} castShadow>
+        <boxGeometry args={[0.7, 0.6, 4.8]} />
+        <meshStandardMaterial color="#0f172a" metalness={0.4} roughness={0.6} />
       </mesh>
-      {/* Neon inner frame */}
-      <mesh position={[0, 1.5, 2]}>
-        <boxGeometry args={[0.2, 3.8, 0.1]} />
-        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={2} />
+
+      {/* Neon Energy Ring Frame */}
+      <mesh position={[0, 1.6, 0]} rotation={[0, Math.PI / 2, 0]}>
+        <ringGeometry args={[1.5, 1.65, 32]} />
+        <meshBasicMaterial color={color} transparent opacity={0.9} side={2} />
       </mesh>
-      <mesh position={[0, 1.5, -2]}>
-        <boxGeometry args={[0.2, 3.8, 0.1]} />
-        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={2} />
-      </mesh>
-      <mesh position={[0, 3.2, 0]}>
-        <boxGeometry args={[0.2, 0.1, 4]} />
-        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={2} />
-      </mesh>
-      {/* Label */}
+
+      {/* Rotating Inner Quantum Iris */}
+      <group ref={irisRef} position={[0, 1.6, 0]} rotation={[0, Math.PI / 2, 0]}>
+        <mesh>
+          <ringGeometry args={[0.8, 1.45, 6]} />
+          <meshBasicMaterial color={color} wireframe transparent opacity={0.6} side={2} />
+        </mesh>
+      </group>
+
+      {/* Top Signboard */}
       <Text
-        position={[0, 4.5, 0]}
+        position={[0, 4.0, 0]}
         rotation={[0, Math.PI / 2, 0]}
-        fontSize={0.8}
+        fontSize={0.42}
         color={color}
+        fontWeight="900"
         anchorX="center"
         anchorY="middle"
-        outlineWidth={0.02}
-        outlineColor={color}
+        outlineWidth={0.03}
+        outlineColor="#0b1329"
       >
         {label}
       </Text>
@@ -131,61 +256,91 @@ function Gate({ position, color, label }) {
   );
 }
 
-// --- Main World ---
+// --- 4. Tractor Beam Peek Field on Front Element ---
+function QueueTractorBeam({ frontX }) {
+  const beamRef = useRef();
 
-export default function QueueWorld({ queue, shake }) {
-  const colors = [
-    "#22d3ee",
-    "#f97316",
-    "#a855f7",
-    "#10b981",
-    "#eab308",
-  ];
+  useFrame((state) => {
+    if (beamRef.current) {
+      const t = state.clock.getElapsedTime();
+      beamRef.current.rotation.y = t * 2.5;
+    }
+  });
 
-  // The front of the queue is always at x = 4.
-  // Each subsequent element is placed 2.8 units to the left.
-  const FRONT_X = 4;
-  const SPACING = 2.8;
-  const ENTRY_X = -10;
-  const EXIT_X = 10;
+  return (
+    <group position={[frontX, 0, 0]}>
+      {/* Floor Scan Halo */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.48, 0]}>
+        <ringGeometry args={[0.9, 1.4, 32]} />
+        <meshBasicMaterial color="#38bdf8" transparent opacity={0.75} side={2} />
+      </mesh>
+
+      {/* Vertical Cyan Tractor Beam Column */}
+      <mesh ref={beamRef} position={[0, 1.4, 0]}>
+        <cylinderGeometry args={[1.1, 1.3, 3.8, 24, 1, true]} />
+        <meshBasicMaterial
+          color="#38bdf8"
+          transparent
+          opacity={0.16}
+          side={2}
+          depthWrite={false}
+        />
+      </mesh>
+    </group>
+  );
+}
+
+// --- Main World Component ---
+
+export default function QueueWorld({
+  queue = [],
+  shake,
+  isPeeking = false,
+}) {
+  const FRONT_X = 4.2;
+  const SPACING = 2.7;
+  const ENTRY_X = -10.5;
+  const EXIT_X = 7.8;
 
   const transitions = useTransition(queue, {
     keys: (item) => item.id,
     from: () => ({
-      position: [ENTRY_X, 2, 0],
-      scale: [0.2, 0.2, 0.2],
-      rotation: [0, 0, Math.PI / 2],
+      position: [ENTRY_X, 0.25, 0],
+      scale: [0.2, 1.4, 0.2], // Compressed while materializing from entry portal
+      rotation: [0, 0, 0],
       opacity: 0,
     }),
     enter: (item, index) => ({
-      position: [FRONT_X - index * SPACING, 0.2, 0],
-      scale: [1, 1, 1],
+      position: [FRONT_X - index * SPACING, 0.25, 0],
+      scale: [1, 1, 1], // Settles into queue position
       rotation: [0, 0, 0],
       opacity: 1,
     }),
     update: (item, index) => ({
-      position: [FRONT_X - index * SPACING, 0.2, 0],
+      position: [FRONT_X - index * SPACING, 0.25, 0], // Smoothly glides forward when front dequeues
       scale: [1, 1, 1],
       rotation: [0, 0, 0],
       opacity: 1,
     }),
     leave: {
-      position: [EXIT_X, 0.2, 0],
-      scale: [1.2, 0.2, 1.2],
+      position: [EXIT_X + 4.5, 0.25, 0], // Hyper-eject forward through exit gate
+      scale: [1.6, 0.4, 1.6],
       rotation: [0, 0, 0],
       opacity: 0,
     },
     config: {
-      mass: 1,
-      tension: 180,
-      friction: 20,
+      mass: 1.1,
+      tension: 240,
+      friction: 18,
     },
   });
 
   return (
     <Canvas
-      shadows
-      camera={{ position: [0, 8, 14], fov: 50 }}
+      dpr={[1, 1.5]}
+      gl={{ powerPreference: "high-performance", antialias: true, alpha: true }}
+      performance={{ min: 0.8 }}
+      camera={{ position: [0, 6.5, 13.5], fov: 48 }}
       style={{
         background: "transparent",
         height: "100%",
@@ -199,16 +354,27 @@ export default function QueueWorld({ queue, shake }) {
       <ambientLight intensity={1.2} />
 
       <directionalLight
-        position={[5, 10, 5]}
-        intensity={3}
-        castShadow
-        shadow-mapSize-width={1024}
-        shadow-mapSize-height={1024}
+        position={[5, 12, 6]}
+        intensity={2.8}
+        color="#fff7ed"
       />
 
-      <fog attach="fog" args={["#020617", 10, 30]} />
+      <directionalLight
+        position={[-5, 8, -4]}
+        intensity={1.4}
+        color="#38bdf8"
+      />
+
+      <pointLight
+        position={[0, 4, 3]}
+        intensity={5}
+        color="#a855f7"
+      />
+
+      <fog attach="fog" args={["#020617", 12, 32]} />
 
       <OrbitControls
+        target={[0, 0.6, 0]}
         enablePan={false}
         minDistance={8}
         maxDistance={18}
@@ -217,31 +383,43 @@ export default function QueueWorld({ queue, shake }) {
         dampingFactor={0.08}
       />
 
-      <ConveyorBelt />
+      {/* MagLev Track with Directional Chevrons */}
+      <AnimatedConveyorTrack />
 
-      <Gate position={[ENTRY_X, -0.5, 0]} color="#a855f7" label="ENTRY" />
-      <Gate position={[EXIT_X, -0.5, 0]} color="#22d3ee" label="EXIT" />
+      {/* Quantum Portals */}
+      <QuantumPortal position={[ENTRY_X, -0.5, 0]} color="#a855f7" label="REAR (ENTRY)" />
+      <QuantumPortal position={[EXIT_X, -0.5, 0]} color="#22d3ee" label="FRONT (EXIT)" isExit={true} />
 
+      {/* Queue Shuttle Pods */}
       {transitions((style, item, t, index) => (
-        <TransportPod
+        <MagLevPod
           key={item.id}
           value={item.value}
+          index={index}
           position={style.position}
           scale={style.scale}
           rotation={style.rotation}
           opacity={style.opacity}
-          color={colors[index % colors.length] || "#22d3ee"}
+          isPeeked={isPeeking && index === 0}
         />
       ))}
 
-      {/* Cyberpunk Environment Decor */}
-      <CityTower position={[-8, -2, -8]} height={12} color="#22d3ee" />
-      <CityTower position={[-4, -1, -10]} height={14} color="#a855f7" />
-      <CityTower position={[0, -2, -9]} height={10} color="#f97316" />
-      <CityTower position={[5, -1, -10]} height={16} color="#10b981" />
-      <CityTower position={[9, -2, -8]} height={11} color="#eab308" />
+      {/* Front Peek Tractor Beam */}
+      {isPeeking && queue.length > 0 && (
+        <QueueTractorBeam frontX={FRONT_X} />
+      )}
 
-      <ContactShadows position={[0, -0.68, 0]} opacity={0.5} scale={30} blur={2} far={4} />
+      {/* Matte Floor Void & Contact Shadows */}
+      <ContactShadows
+        position={[0, -0.61, 0]}
+        opacity={0.6}
+        scale={28}
+        blur={1.4}
+        far={3}
+        resolution={256}
+        frames={1}
+        color="#000000"
+      />
     </Canvas>
   );
 }

@@ -21,19 +21,24 @@ export default function SidebarItem({
       style={{
         display: 'flex',
         alignItems: 'center',
-        padding: '12px 16px',
-        margin: '6px 12px',
-        borderRadius: '16px',
+        justifyContent: isExpanded ? 'flex-start' : 'center',
+        padding: isExpanded ? '10px 14px' : '0',
+        margin: isExpanded ? '3px 8px' : '3px auto',
+        width: isExpanded ? 'calc(100% - 16px)' : '48px',
+        height: '46px',
+        boxSizing: 'border-box',
+        borderRadius: '14px',
         background: isActive ? `rgba(${hexToRgb(world.color)}, 0.15)` : 'transparent',
         border: isActive ? `1px solid rgba(${hexToRgb(world.color)}, 0.4)` : '1px solid transparent',
         color: isActive ? world.color : world.locked ? '#475569' : '#cbd5e1',
         cursor: world.locked ? 'not-allowed' : 'pointer',
-        transition: 'all 0.3s ease',
+        transition: 'all 0.25s ease',
         position: 'relative',
         overflow: 'hidden',
-        boxShadow: isActive ? `0 0 20px rgba(${hexToRgb(world.color)}, 0.2)` : 'none',
+        boxShadow: isActive ? `0 0 18px rgba(${hexToRgb(world.color)}, 0.25)` : 'none',
+        flexShrink: 0,
       }}
-      title={!isExpanded ? world.title : ""}
+      title={!isExpanded ? `${world.title} - ${world.subtitle}` : ""}
     >
       {/* Active Left Indicator */}
       {isActive && (
@@ -42,9 +47,9 @@ export default function SidebarItem({
           style={{
             position: 'absolute',
             left: 0,
-            top: '10%',
-            bottom: '10%',
-            width: '4px',
+            top: '12%',
+            bottom: '12%',
+            width: '3.5px',
             borderRadius: '0 4px 4px 0',
             background: world.color,
             boxShadow: `0 0 10px ${world.color}`,
@@ -58,56 +63,64 @@ export default function SidebarItem({
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'center',
-          minWidth: '24px',
-          marginRight: isExpanded ? '16px' : '0',
-          transition: 'margin 0.3s ease',
+          width: '24px',
+          height: '24px',
+          flexShrink: 0,
+          marginRight: isExpanded ? '12px' : '0',
+          transition: 'margin 0.25s ease',
         }}
       >
         <IconComponent 
-          size={24} 
+          size={20} 
           style={{
             filter: isActive ? `drop-shadow(0 0 8px ${world.color})` : 'none',
-            transition: 'all 0.3s ease',
+            transition: 'all 0.25s ease',
           }} 
         />
       </div>
 
       {/* Text Container */}
-      <div 
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'flex-start',
-          opacity: isExpanded ? 1 : 0,
-          width: isExpanded ? 'auto' : 0,
-          overflow: 'hidden',
-          transition: 'opacity 0.3s ease, width 0.3s ease',
-          whiteSpace: 'nowrap',
-        }}
-      >
-        <span style={{ 
-          fontWeight: isActive ? '800' : '600', 
-          fontSize: '15px',
-          letterSpacing: '0.5px'
-        }}>
-          {world.title}
-        </span>
-        <span style={{ 
-          fontSize: '11px', 
-          color: isActive ? `rgba(${hexToRgb(world.color)}, 0.8)` : '#64748b',
-          marginTop: '2px',
-          fontWeight: '500',
-          textTransform: 'uppercase',
-          letterSpacing: '1px'
-        }}>
-          {world.subtitle}
-        </span>
-      </div>
+      {isExpanded && (
+        <motion.div 
+          initial={{ opacity: 0, x: -6 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -6 }}
+          transition={{ duration: 0.15 }}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-start',
+            overflow: 'hidden',
+            whiteSpace: 'nowrap',
+            flex: 1,
+          }}
+        >
+          <span style={{ 
+            fontWeight: isActive ? '800' : '600', 
+            fontSize: '13.5px',
+            letterSpacing: '0.4px',
+            lineHeight: 1.2,
+          }}>
+            {world.title}
+          </span>
+          <span style={{ 
+            fontSize: '10.5px', 
+            color: isActive ? `rgba(${hexToRgb(world.color)}, 0.8)` : '#64748b',
+            marginTop: '2px',
+            fontWeight: '500',
+            textTransform: 'uppercase',
+            letterSpacing: '0.8px',
+            lineHeight: 1.2,
+          }}>
+            {world.subtitle}
+          </span>
+        </motion.div>
+      )}
 
       {/* Lock Icon for future worlds */}
       {world.locked && isExpanded && (
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', opacity: 0.5 }}>
-          <Lock size={14} />
+          <Lock size={13} />
         </div>
       )}
     </motion.button>

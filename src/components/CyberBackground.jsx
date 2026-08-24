@@ -1,6 +1,21 @@
 import React from 'react';
 
-export default function CyberBackground() {
+// Static deterministic particles to prevent DOM thrashing on re-renders
+const STATIC_CYBER_PARTICLES = Array.from({ length: 25 }).map((_, i) => {
+  const seedX = Math.sin(i * 19.123) * 43758.5453;
+  const seedY = Math.sin(i * 37.456) * 43758.5453;
+  const seedOp = Math.sin(i * 53.789) * 43758.5453;
+  const seedDur = Math.sin(i * 71.012) * 43758.5453;
+
+  return {
+    left: `${Math.floor((seedX - Math.floor(seedX)) * 100)}%`,
+    top: `${Math.floor((seedY - Math.floor(seedY)) * 100)}%`,
+    opacity: (seedOp - Math.floor(seedOp)) * 0.4 + 0.1,
+    duration: `${((seedDur - Math.floor(seedDur)) * 3 + 2).toFixed(1)}s`,
+  };
+});
+
+function CyberBackground() {
   return (
     <div
       style={{
@@ -65,7 +80,7 @@ export default function CyberBackground() {
           margin: "auto",
         }}
       />
-      {Array.from({ length: 25 }).map((_, i) => (
+      {STATIC_CYBER_PARTICLES.map((p, i) => (
         <div
           key={i}
           style={{
@@ -74,10 +89,10 @@ export default function CyberBackground() {
             height: "3px",
             borderRadius: "50%",
             background: "#22d3ee",
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
-            opacity: Math.random() * 0.4 + 0.1,
-            animation: `pulse ${Math.random() * 3 + 2}s infinite alternate`,
+            left: p.left,
+            top: p.top,
+            opacity: p.opacity,
+            animation: `pulse ${p.duration} infinite alternate`,
           }}
         />
       ))}
@@ -94,3 +109,5 @@ export default function CyberBackground() {
     </div>
   );
 }
+
+export default React.memo(CyberBackground);

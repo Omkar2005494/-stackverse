@@ -82,7 +82,12 @@ export default function GraphPreview() {
         background: "rgba(2,6,23,0.35)",
       }}
     >
-      <Canvas camera={{ position: [0, 0, 5], fov: 50 }}>
+      <Canvas
+        dpr={[1, 1.5]}
+        gl={{ powerPreference: "high-performance", antialias: true, alpha: true }}
+        performance={{ min: 0.8 }}
+        camera={{ position: [0, 0, 5], fov: 50 }}
+      >
         <ambientLight intensity={1.5} />
 
         <directionalLight

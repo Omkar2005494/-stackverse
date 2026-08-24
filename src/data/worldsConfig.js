@@ -7,10 +7,19 @@ import {
   Mountain,
   Search,
   ArrowDownUp,
-  BrainCircuit
+  BrainCircuit,
+  Code2,
 } from 'lucide-react';
 
 export const worldsConfig = [
+  {
+    id: 'codestudio',
+    title: 'Code-to-3D Studio',
+    subtitle: 'Live Code Visualizer',
+    icon: Code2,
+    color: '#38bdf8', // Cyber Blue
+    locked: false,
+  },
   {
     id: 'stack',
     title: 'Stack Kingdom',

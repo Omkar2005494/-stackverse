@@ -5,6 +5,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../firebase/firebase";
 import { saveProgress, loadProgress } from "../hooks/useCloudSave";
+import { soundFX } from "../utils/soundFX";
 
 const GameProgressContext = createContext();
 
@@ -46,10 +47,11 @@ export function GameProgressProvider({ children }) {
       if (newLevel > level) {
         setLevelReached(newLevel);
         setShowLevelUp(true);
+        soundFX.playLevelUp();
 
         setTimeout(() => {
           setShowLevelUp(false);
-        }, 2000);
+        }, 3600);
       }
 
       setLevel(newLevel);
@@ -77,6 +79,19 @@ export function GameProgressProvider({ children }) {
       if (!user) {
         setUid(null);
         setIsLoaded(false);
+        setXp(0);
+        setLevel(1);
+        setAchievements([]);
+        setStats({
+          bfsRuns: 0,
+          dfsRuns: 0,
+          treesBuilt: 0,
+          nodesAdded: 0,
+          heapOperations: 0,
+          graphOperations: 0,
+        });
+        setStreakCount(0);
+        setLastLoginDate(null);
         return;
       }
 
@@ -151,6 +166,24 @@ export function GameProgressProvider({ children }) {
     });
   }, [uid, xp, level, achievements, stats, streakCount, lastLoginDate, isLoaded]);
 
+  const resetGameProgress = () => {
+    setXp(0);
+    setLevel(1);
+    setShowLevelUp(false);
+    setLevelReached(1);
+    setAchievements([]);
+    setStats({
+      bfsRuns: 0,
+      dfsRuns: 0,
+      treesBuilt: 0,
+      nodesAdded: 0,
+      heapOperations: 0,
+      graphOperations: 0,
+    });
+    setStreakCount(0);
+    setLastLoginDate(null);
+  };
+
   return (
     <GameProgressContext.Provider
       value={{
@@ -166,6 +199,7 @@ export function GameProgressProvider({ children }) {
         addXP,
         unlockAchievement,
         incrementStat,
+        resetGameProgress,
       }}
     >
       {children}

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useGameProgress } from "../context/GameProgressContext";
+import { soundFX } from "../utils/soundFX";
 
 export function useGraphLogic() {
   const {
@@ -19,12 +20,19 @@ export function useGraphLogic() {
   const addVertex = (val) => {
     const value = (val !== undefined ? String(val) : vertexInput).trim().toUpperCase();
 
-    if (!value) return false;
-    if (graphNodes.includes(value)) return false;
+    if (!value) {
+      soundFX.playWarning();
+      return false;
+    }
+    if (graphNodes.includes(value)) {
+      soundFX.playWarning();
+      return false;
+    }
 
     setGraphNodes((prev) => [...prev, value]);
     addXP(5);
     incrementStat("nodesAdded");
+    soundFX.playPush();
     setVertexInput("");
 
     return true;
@@ -33,43 +41,70 @@ export function useGraphLogic() {
   const deleteVertex = (val) => {
     const value = (val !== undefined ? String(val) : vertexInput).trim().toUpperCase();
 
-    if (!value) return false;
-    if (!graphNodes.includes(value)) return false;
+    if (!value || !graphNodes.includes(value)) {
+      soundFX.playWarning();
+      return false;
+    }
 
     setGraphNodes((prev) => prev.filter((v) => v !== value));
     setGraphEdges((prev) =>
       prev.filter(([from, to]) => from !== value && to !== value)
     );
 
+    soundFX.playPop();
     setVertexInput("");
 
     return true;
   };
 
-  const addEdge = () => {
-    const [from, to] = edgeInput
+  const addEdge = (customEdge) => {
+    const raw = customEdge || edgeInput;
+    const [from, to] = raw
       .split("-")
       .map((v) => v.trim().toUpperCase());
 
-    if (!from || !to) return false;
-    if (!graphNodes.includes(from) || !graphNodes.includes(to)) return false;
+    if (!from || !to) {
+      soundFX.playWarning();
+      return false;
+    }
+    if (!graphNodes.includes(from) || !graphNodes.includes(to)) {
+      soundFX.playWarning();
+      return false;
+    }
+
+    // Prevent duplicate edges
+    const exists = graphEdges.some(
+      ([a, b]) => (a === from && b === to) || (a === to && b === from)
+    );
+    if (exists) {
+      soundFX.playWarning();
+      return false;
+    }
 
     setGraphEdges((prev) => [...prev, [from, to]]);
     addXP(5);
     incrementStat("graphOperations");
+    soundFX.playPush();
     setEdgeInput("");
     return true;
   };
 
-  const deleteEdge = () => {
-    const [from, to] = edgeInput
+  const deleteEdge = (customEdge) => {
+    const raw = customEdge || edgeInput;
+    const [from, to] = raw
       .split("-")
       .map((v) => v.trim().toUpperCase());
 
+    if (!from || !to) {
+      soundFX.playWarning();
+      return false;
+    }
+
     setGraphEdges((prev) =>
-      prev.filter(([a, b]) => !(a === from && b === to))
+      prev.filter(([a, b]) => !( (a === from && b === to) || (a === to && b === from) ))
     );
 
+    soundFX.playPop();
     setEdgeInput("");
     return true;
   };
@@ -80,10 +115,14 @@ export function useGraphLogic() {
     setShortestPath([]);
     setVertexInput("");
     setEdgeInput("");
+    soundFX.playClear();
   };
 
   const startGraphBFS = () => {
-    if (!graphNodes.length) return [];
+    if (!graphNodes.length) {
+      soundFX.playWarning();
+      return [];
+    }
 
     const visited = new Set();
     const queue = [graphNodes[0]];
@@ -100,6 +139,8 @@ export function useGraphLogic() {
       graphEdges.forEach(([from, to]) => {
         if (from === node && !visited.has(to)) {
           queue.push(to);
+        } else if (to === node && !visited.has(from)) {
+          queue.push(from);
         }
       });
     }
@@ -115,7 +156,10 @@ export function useGraphLogic() {
   };
 
   const startGraphDFS = () => {
-    if (!graphNodes.length) return [];
+    if (!graphNodes.length) {
+      soundFX.playWarning();
+      return [];
+    }
 
     const visited = new Set();
     const result = [];
@@ -128,6 +172,7 @@ export function useGraphLogic() {
 
       graphEdges.forEach(([from, to]) => {
         if (from === node) dfs(to);
+        else if (to === node) dfs(from);
       });
     };
 
@@ -143,11 +188,19 @@ export function useGraphLogic() {
     return result;
   };
 
-  const findShortestPath = () => {
-    const start = startVertex.trim().toUpperCase();
-    const end = endVertex.trim().toUpperCase();
+  const findShortestPath = (customStart, customEnd) => {
+    const start = (customStart || startVertex).trim().toUpperCase();
+    const end = (customEnd || endVertex).trim().toUpperCase();
 
-    if (!start || !end) return [];
+    if (!start || !end) {
+      soundFX.playWarning();
+      return [];
+    }
+
+    if (!graphNodes.includes(start) || !graphNodes.includes(end)) {
+      soundFX.playWarning();
+      return [];
+    }
 
     const queue = [[start]];
     const visited = new Set([start]);
@@ -158,22 +211,23 @@ export function useGraphLogic() {
 
       if (node === end) {
         setShortestPath(path);
-
         addXP(50);
         incrementStat("graphOperations");
         unlockAchievement("🧭 Pathfinder");
-
+        soundFX.playTreeFound();
         return path;
       }
 
       graphEdges.forEach(([from, to]) => {
-        if (from === node && !visited.has(to)) {
-          visited.add(to);
-          queue.push([...path, to]);
+        const neighbor = from === node ? to : to === node ? from : null;
+        if (neighbor && !visited.has(neighbor)) {
+          visited.add(neighbor);
+          queue.push([...path, neighbor]);
         }
       });
     }
 
+    soundFX.playWarning();
     setShortestPath([]);
     return [];
   };

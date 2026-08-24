@@ -1,5 +1,3 @@
-
-
 import { useEffect, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../firebase/firebase";
@@ -20,5 +18,18 @@ export function useAuth() {
     return unsubscribe;
   }, []);
 
-  return { user, authLoading };
+  const loginAsGuest = () => {
+    setUser({
+      uid: "guest-adventurer",
+      displayName: "Guest Adventurer",
+      email: "guest@stackverse.io",
+      isAnonymous: true,
+    });
+  };
+
+  const logoutGuest = () => {
+    setUser(null);
+  };
+
+  return { user, authLoading, loginAsGuest, logoutGuest, setUser };
 }

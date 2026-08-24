@@ -1,76 +1,167 @@
-import { useEffect } from "react";
-import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Text, Float, Line, QuadraticBezierLine, ContactShadows } from "@react-three/drei";
-import { animated, useTransition, useSpring } from "@react-spring/three";
+import React, { useEffect, useRef } from "react";
+import { Canvas, useFrame } from "@react-three/fiber";
+import {
+  OrbitControls,
+  Text,
+  Line,
+  QuadraticBezierLine,
+  Stars,
+} from "@react-three/drei";
 import * as THREE from "three";
 import OperationsPanel from "../components/OperationsPanel";
 import { useLinkedListLogic } from "../hooks/useLinkedListLogic";
 
-// --- Components ---
+// --- 1. Emerald Bio-Crystalline Node ---
+const NodeOrb = React.memo(function NodeOrb({
+  position,
+  value,
+  index,
+  isHead,
+  isTail,
+  isHighlighted,
+}) {
+  const groupRef = useRef();
+  const crownRef = useRef();
 
-function NodeOrb({ position, value, isHighlighted, color = "#22d3ee" }) {
-  // Spring animation for entering and highlighting
-  const { scale, glowIntensity, orbColor } = useSpring({
-    scale: isHighlighted ? [1.3, 1.3, 1.3] : [1, 1, 1],
-    glowIntensity: isHighlighted ? 2.5 : 0.8,
-    orbColor: isHighlighted ? "#a855f7" : color,
-    config: { tension: 200, friction: 15 }
+  useFrame((state) => {
+    const t = state.clock.getElapsedTime();
+    if (groupRef.current) {
+      groupRef.current.position.y =
+        position[1] + Math.sin(t * 2.5 + index * 0.7) * 0.08;
+    }
+    if (crownRef.current) {
+      crownRef.current.rotation.z = t * 2;
+    }
   });
 
+  const mainColor = isHighlighted
+    ? "#fde047"
+    : isHead
+    ? "#34d399"
+    : isTail
+    ? "#38bdf8"
+    : "#10b981";
+
+  const emissiveColor = isHighlighted
+    ? "#eab308"
+    : isHead
+    ? "#059669"
+    : isTail
+    ? "#0284c7"
+    : "#047857";
+
   return (
-    <animated.group position={position} scale={scale}>
-      <Float speed={2} rotationIntensity={0.5} floatIntensity={0.5}>
-        <mesh castShadow>
-          <sphereGeometry args={[0.7, 32, 32]} />
-          <animated.meshPhysicalMaterial
-            color={orbColor}
-            emissive={orbColor}
-            emissiveIntensity={glowIntensity}
-            transparent
-            opacity={0.9}
-            roughness={0.1}
-            metalness={0.3}
-            clearcoat={1}
-          />
-        </mesh>
-        
-        {/* Inner Core */}
-        <mesh>
-          <sphereGeometry args={[0.35, 16, 16]} />
-          <meshBasicMaterial color="#ffffff" />
-        </mesh>
+    <group ref={groupRef} position={[position[0], position[1], position[2]]}>
+      {/* Head / Tail Crown Halo */}
+      {(isHead || isTail) && (
+        <group ref={crownRef}>
+          <mesh rotation={[-Math.PI / 4, 0, 0]}>
+            <ringGeometry args={[0.92, 1.06, 32]} />
+            <meshBasicMaterial
+              color={isHead ? "#6ee7b7" : "#7dd3fc"}
+              transparent
+              opacity={0.85}
+              side={2}
+            />
+          </mesh>
+        </group>
+      )}
 
-        <Text
-          position={[0, 1.1, 0]}
-          fontSize={0.65}
-          color="#ffffff"
-          anchorX="center"
-          anchorY="middle"
-          outlineWidth={0.05}
-          outlineColor="#000000"
-        >
-          {value}
-        </Text>
-      </Float>
-    </animated.group>
+      {/* Floating Role Badge */}
+      {(isHead || isTail) && (
+        <group position={[0, 1.25, 0]}>
+          <Text
+            fontSize={0.25}
+            color={isHead ? "#6ee7b7" : "#7dd3fc"}
+            fontWeight="900"
+            anchorX="center"
+            anchorY="middle"
+            outlineWidth={0.04}
+            outlineColor="#022c22"
+          >
+            {isHead && isTail ? "HEAD & TAIL" : isHead ? "HEAD [0]" : `TAIL [${index}]`}
+          </Text>
+        </group>
+      )}
+
+      {/* Emerald Crystal Core */}
+      <mesh castShadow scale={isHighlighted ? 1.25 : 1}>
+        <sphereGeometry args={[0.62, 32, 32]} />
+        <meshStandardMaterial
+          color={mainColor}
+          emissive={emissiveColor}
+          emissiveIntensity={isHighlighted ? 4.5 : 2}
+          metalness={0.25}
+          roughness={0.15}
+        />
+      </mesh>
+
+      {/* Outer Wireframe Lattice */}
+      <mesh scale={isHighlighted ? 1.26 : 1}>
+        <sphereGeometry args={[0.64, 16, 16]} />
+        <meshBasicMaterial
+          color={isHighlighted ? "#ffffff" : isHead ? "#a7f3d0" : "#6ee7b7"}
+          wireframe
+          transparent
+          opacity={isHighlighted ? 0.8 : 0.35}
+        />
+      </mesh>
+
+      {/* Value Numeral */}
+      <Text
+        position={[0, 0, 0.74]}
+        fontSize={0.46}
+        color="#ffffff"
+        fontWeight="900"
+        anchorX="center"
+        anchorY="middle"
+        outlineWidth={0.04}
+        outlineColor="#022c22"
+      >
+        {String(value)}
+      </Text>
+
+      {/* Index Subscript */}
+      <Text
+        position={[0, -0.9, 0]}
+        fontSize={0.22}
+        color="#94a3b8"
+        fontWeight="700"
+        anchorX="center"
+        anchorY="middle"
+        outlineWidth={0.02}
+        outlineColor="#000000"
+      >
+        {`[${index}]`}
+      </Text>
+    </group>
   );
-}
+});
 
-function PointerBeam({ start, end, isCircularReturn = false, color = "#22d3ee", offset = [0,0,0] }) {
+// --- 2. Holographic Pointer Beam ---
+const PointerBeam = React.memo(function PointerBeam({
+  start,
+  end,
+  isCircularReturn = false,
+  color = "#34d399",
+  offset = [0, 0, 0],
+}) {
   const startVec = new THREE.Vector3(...start).add(new THREE.Vector3(...offset));
   const endVec = new THREE.Vector3(...end).add(new THREE.Vector3(...offset));
-  
+
   if (isCircularReturn) {
     const midVec = new THREE.Vector3(
       (startVec.x + endVec.x) / 2,
-      startVec.y - 1, // curve slightly down
-      startVec.z + 4  // curve forward out of the screen
+      startVec.y - 1.8,
+      startVec.z + 4.5
     );
 
-    // Approximate direction at the end of the curve
     const arrowDir = new THREE.Vector3().subVectors(endVec, midVec).normalize();
-    const arrowPos = endVec.clone().sub(arrowDir.clone().multiplyScalar(0.8));
-    const quaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), arrowDir);
+    const arrowPos = endVec.clone().sub(arrowDir.clone().multiplyScalar(0.7));
+    const quaternion = new THREE.Quaternion().setFromUnitVectors(
+      new THREE.Vector3(0, 1, 0),
+      arrowDir
+    );
 
     return (
       <group>
@@ -79,43 +170,76 @@ function PointerBeam({ start, end, isCircularReturn = false, color = "#22d3ee", 
           end={endVec}
           mid={midVec}
           color={color}
-          lineWidth={3}
+          lineWidth={3.5}
           transparent
-          opacity={0.6}
+          opacity={0.8}
         />
         <mesh position={arrowPos} quaternion={quaternion}>
-          <coneGeometry args={[0.15, 0.4, 12]} />
-          <meshBasicMaterial color={color} />
+          <coneGeometry args={[0.16, 0.42, 12]} />
+          <meshStandardMaterial color={color} emissive={color} emissiveIntensity={3} />
         </mesh>
       </group>
     );
   }
 
   const arrowDir = new THREE.Vector3().subVectors(endVec, startVec).normalize();
-  const arrowPos = endVec.clone().sub(arrowDir.clone().multiplyScalar(0.8));
-  const quaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), arrowDir);
+  const arrowPos = endVec.clone().sub(arrowDir.clone().multiplyScalar(0.7));
+  const quaternion = new THREE.Quaternion().setFromUnitVectors(
+    new THREE.Vector3(0, 1, 0),
+    arrowDir
+  );
 
   return (
     <group>
       <Line
         points={[startVec, endVec]}
         color={color}
-        lineWidth={3}
-        dashed={false}
+        lineWidth={3.5}
         transparent
-        opacity={0.6}
+        opacity={0.8}
       />
       <mesh position={arrowPos} quaternion={quaternion}>
-        <coneGeometry args={[0.15, 0.4, 12]} />
-        <meshBasicMaterial color={color} />
+        <coneGeometry args={[0.16, 0.42, 12]} />
+        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={3} />
       </mesh>
+    </group>
+  );
+});
+
+// --- 3. NULL Terminal Beacon ---
+function NullTerminal({ position }) {
+  return (
+    <group position={position}>
+      <mesh position={[0, 0, 0]}>
+        <boxGeometry args={[0.9, 0.5, 0.2]} />
+        <meshStandardMaterial
+          color="#334155"
+          emissive="#475569"
+          emissiveIntensity={0.5}
+          metalness={0.5}
+          roughness={0.2}
+        />
+      </mesh>
+      <Text
+        position={[0, 0, 0.15]}
+        fontSize={0.26}
+        color="#94a3b8"
+        fontWeight="900"
+        anchorX="center"
+        anchorY="middle"
+      >
+        NULL
+      </Text>
     </group>
   );
 }
 
-// --- Main World ---
+// --- Main LinkedListWorld Component ---
 
-export default function LinkedListWorld({ addXP = () => {}, setLearningStats = () => {} }) {
+export default function LinkedListWorld({
+  addXP = () => {},
+  setLearningStats = () => {},
+}) {
   const {
     nodes,
     listType,
@@ -124,171 +248,189 @@ export default function LinkedListWorld({ addXP = () => {}, setLearningStats = (
     message,
     setMessage,
     insertNode,
+    insertHead,
     deleteNode,
     searchNode,
     traverseList,
     backwardTraverse,
     circularTraverse,
-    stopCircular,
-    isCircularRunning,
-    reverseList
+    reverseList,
+    resetList,
   } = useLinkedListLogic(addXP, setLearningStats);
 
-  // Auto-clear message
+  // Auto-clear notification
   useEffect(() => {
     if (!message) return;
-    const timer = setTimeout(() => setMessage(""), 3000);
+    const timer = setTimeout(() => setMessage(""), 2600);
     return () => clearTimeout(timer);
   }, [message, setMessage]);
 
   const SPACING = 2.8;
   const startX = -((nodes.length - 1) * SPACING) / 2;
 
-  // useTransition for nodes so they animate in/out smoothly
-  const transitions = useTransition(nodes, {
-    keys: (item) => item.id,
-    from: { position: [0, 10, 0], scale: [0, 0, 0], opacity: 0 },
-    enter: (item, index) => ({
-      position: [startX + index * SPACING, 0, 0],
-      scale: [1, 1, 1],
-      opacity: 1
-    }),
-    update: (item, index) => ({
-      position: [startX + index * SPACING, 0, 0],
-      scale: [1, 1, 1],
-      opacity: 1
-    }),
-    leave: { position: [0, -10, 0], scale: [0, 0, 0], opacity: 0 },
-    config: { tension: 180, friction: 14 }
-  });
-
   const getSecondaryActions = () => {
     const actions = [
-      { label: "Search", onClick: searchNode },
-      { label: "Delete", onClick: deleteNode, isDanger: true },
-      { label: "Traverse", onClick: traverseList },
-      { label: "Reverse", onClick: reverseList },
+      { label: "INSERT HEAD", onClick: insertHead },
+      { label: "SEARCH", onClick: searchNode },
+      { label: "DELETE", onClick: deleteNode, isDanger: true },
+      { label: "TRAVERSE", onClick: traverseList },
+      { label: "REVERSE", onClick: reverseList },
     ];
     if (listType === "doubly") {
-      actions.push({ label: "Backward", onClick: backwardTraverse });
+      actions.push({ label: "BACKWARD", onClick: backwardTraverse });
     }
     if (listType === "circular") {
-      actions.push({ label: "Circular", onClick: circularTraverse });
-      if (isCircularRunning) {
-        actions.push({ label: "Stop", onClick: stopCircular, isDanger: true });
-      }
+      actions.push({ label: "CIRCULAR LOOP", onClick: circularTraverse });
     }
+    actions.push({ label: "RESET", onClick: resetList, isDanger: true });
     return actions;
   };
 
   const listTypeTabs = (
-    <div style={{ display: "flex", gap: "6px", marginBottom: "8px", background: "rgba(0,0,0,0.3)", padding: "4px", borderRadius: "14px" }}>
+    <div
+      style={{
+        display: "flex",
+        gap: "6px",
+        marginBottom: "8px",
+        background: "rgba(0,0,0,0.4)",
+        padding: "4px",
+        borderRadius: "14px",
+      }}
+    >
       {["singly", "doubly", "circular"].map((type) => (
         <button
           key={type}
           onClick={() => setListType(type)}
           style={{
             flex: 1,
-            padding: "6px 0",
+            padding: "7px 0",
             borderRadius: "10px",
             border: "none",
-            background: listType === type ? "#22d3ee" : "transparent",
-            color: listType === type ? "#0f172a" : "white",
-            fontWeight: "bold",
+            background: listType === type ? "#10b981" : "transparent",
+            color: listType === type ? "#022c22" : "#94a3b8",
+            fontWeight: "800",
             cursor: "pointer",
             fontSize: "12px",
-            transition: "all 0.2s"
+            transition: "all 0.2s",
+            textTransform: "uppercase",
           }}
         >
-          {type.charAt(0).toUpperCase() + type.slice(1)}
+          {type}
         </button>
       ))}
     </div>
   );
 
   return (
-    <div className="world-container" style={{ position: "relative", width: "100%", height: "100%" }}>
+    <div
+      className="world-container"
+      style={{ position: "relative", width: "100%", height: "100%" }}
+    >
       <OperationsPanel
         onInsert={(val) => insertNode(val)}
-        insertLabel="INSERT"
-        color="#22d3ee"
+        insertLabel="INSERT TAIL"
+        color="#10b981"
         secondaryActions={getSecondaryActions()}
         headerSlot={listTypeTabs}
       />
+
+      {/* Info Card */}
       <div
         style={{
           position: "absolute",
           top: "90px",
           left: "20px",
           zIndex: 300,
-          padding: "12px 16px",
-          borderRadius: "12px",
-          background: "rgba(15,23,42,0.82)",
-          backdropFilter: "blur(12px)",
-          border: "1px solid rgba(34,211,238,0.25)",
+          padding: "14px 18px",
+          borderRadius: "16px",
+          background: "rgba(15,23,42,0.85)",
+          backdropFilter: "blur(14px)",
+          border: "1px solid rgba(16,185,129,0.3)",
           color: "white",
-          fontSize: "12px",
+          fontSize: "12.5px",
           display: "flex",
           flexDirection: "column",
-          gap: "4px"
+          gap: "5px",
+          boxShadow: "0 0 30px rgba(0,0,0,0.5)",
         }}
       >
-        <h3 style={{ margin: 0, color: "#22d3ee", fontSize: "14px", marginBottom: "4px" }}>
-          LINKED LIST FOREST
+        <h3
+          style={{
+            margin: 0,
+            color: "#34d399",
+            fontSize: "14px",
+            fontWeight: "800",
+            letterSpacing: "0.5px",
+            marginBottom: "2px",
+          }}
+        >
+          🌿 LINKEDLIST FOREST
         </h3>
-        <div style={{ margin: 0 }}>Nodes: {nodes.length}</div>
-        <div style={{ margin: 0 }}>Head: {nodes.length > 0 ? nodes[0].value : "None"}</div>
-        <div style={{ margin: 0 }}>Tail: {nodes.length > 0 ? nodes[nodes.length - 1].value : "None"}</div>
-        <div style={{ margin: 0 }}>Type: {listType.charAt(0).toUpperCase() + listType.slice(1)}</div>
+        <div>Nodes: <strong style={{ color: "#34d399" }}>{nodes.length}</strong></div>
+        <div>Head: <strong style={{ color: "#6ee7b7" }}>{nodes.length > 0 ? nodes[0].value : "NULL"}</strong></div>
+        <div>Tail: <strong style={{ color: "#7dd3fc" }}>{nodes.length > 0 ? nodes[nodes.length - 1].value : "NULL"}</strong></div>
+        <div>Type: <strong style={{ color: "#fbbf24" }}>{listType.toUpperCase()}</strong></div>
       </div>
 
+      {/* Action Notification Toast */}
       {message && (
         <div
           style={{
             position: "absolute",
-            top: "40px",
+            top: "35px",
             left: "50%",
             transform: "translateX(-50%)",
-            background: "rgba(15,23,42,0.8)",
-            border: "1px solid rgba(34,211,238,0.4)",
+            background: "rgba(15,23,42,0.9)",
+            border: "1px solid rgba(16,185,129,0.45)",
             padding: "12px 24px",
             borderRadius: "16px",
-            color: "white",
+            color: "#ffffff",
             fontWeight: "bold",
-            zIndex: 100,
-            backdropFilter: "blur(10px)",
-            boxShadow: "0 0 20px rgba(34,211,238,0.2)",
+            fontSize: "14px",
+            zIndex: 400,
+            backdropFilter: "blur(12px)",
+            boxShadow: "0 0 30px rgba(16,185,129,0.3)",
           }}
         >
           {message}
         </div>
       )}
 
+      {/* 3D Canvas */}
       <Canvas
-        shadows
-        camera={{ position: [0, 5, 15], fov: 50 }}
+        dpr={[1, 1.5]}
+        gl={{ powerPreference: "high-performance", antialias: true, alpha: true }}
+        performance={{ min: 0.8 }}
+        camera={{ position: [0, 2, 14], fov: 50 }}
         style={{
           background: "transparent",
           height: "100%",
           width: "100%",
-          borderRadius: "24px",
-          boxShadow: "0 0 40px rgba(0,0,0,0.5)",
         }}
       >
-        <ambientLight intensity={1.5} />
-        <directionalLight position={[5, 10, 5]} intensity={3} castShadow />
-        <fog attach="fog" args={["#020617", 10, 30]} />
+        <ambientLight intensity={1.4} />
+        <directionalLight position={[6, 12, 6]} intensity={3.5} color="#a7f3d0" />
+        <directionalLight position={[-6, -8, -6]} intensity={1.5} color="#34d399" />
+        <pointLight position={[0, 3, 5]} intensity={10} color="#10b981" />
 
-        <OrbitControls enablePan={false} minDistance={5} maxDistance={25} enableDamping dampingFactor={0.05} />
+        <Stars radius={70} depth={35} count={500} factor={3.5} saturation={1} fade speed={0.3} />
 
-        {/* Render Links */}
+        <OrbitControls
+          enablePan={true}
+          minDistance={6}
+          maxDistance={30}
+          enableDamping
+          dampingFactor={0.06}
+        />
+
+        {/* Pointer Beams */}
         {nodes.map((node, index) => {
           if (index === nodes.length - 1 && listType !== "circular") return null;
 
           const start = [startX + index * SPACING, 0, 0];
           let end;
           let isCircularReturn = false;
-          
+
           if (index === nodes.length - 1 && listType === "circular") {
             end = [startX, 0, 0];
             isCircularReturn = true;
@@ -298,44 +440,49 @@ export default function LinkedListWorld({ addXP = () => {}, setLearningStats = (
 
           return (
             <group key={`link-${node.id}`}>
-              <PointerBeam 
-                start={start} 
-                end={end} 
-                isCircularReturn={isCircularReturn} 
-                offset={listType === "doubly" ? [0, 0.25, 0] : [0, 0, 0]}
+              <PointerBeam
+                start={start}
+                end={end}
+                isCircularReturn={isCircularReturn}
+                color="#34d399"
+                offset={listType === "doubly" ? [0, 0.22, 0] : [0, 0, 0]}
               />
               {listType === "doubly" && index !== nodes.length - 1 && (
-                <PointerBeam 
-                  start={end} 
+                <PointerBeam
+                  start={end}
                   end={start}
-                  offset={[0, -0.25, 0]}
                   color="#f97316"
+                  offset={[0, -0.22, 0]}
                 />
               )}
             </group>
           );
         })}
 
-        {/* Render Nodes */}
-        {transitions((style, item, t, index) => (
+        {/* NULL Terminal (Singly / Doubly) */}
+        {nodes.length > 0 && listType !== "circular" && (
+          <group key="null-terminal">
+            <PointerBeam
+              start={[startX + (nodes.length - 1) * SPACING, 0, 0]}
+              end={[startX + nodes.length * SPACING - 0.5, 0, 0]}
+              color="#64748b"
+            />
+            <NullTerminal position={[startX + nodes.length * SPACING - 0.2, 0, 0]} />
+          </group>
+        )}
+
+        {/* Node Orbs */}
+        {nodes.map((item, index) => (
           <NodeOrb
             key={item.id}
             value={item.value}
-            position={style.position}
+            index={index}
+            position={[startX + index * SPACING, 0, 0]}
+            isHead={index === 0}
+            isTail={index === nodes.length - 1}
             isHighlighted={highlightedIndex === index}
-            color={index === 0 ? "#10b981" : index === nodes.length - 1 ? "#f97316" : "#22d3ee"} // Head is green, Tail is orange
           />
         ))}
-
-        {/* Environment Floor */}
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -2, 0]} receiveShadow>
-          <planeGeometry args={[100, 100]} />
-          <meshStandardMaterial color="#020617" roughness={0.8} metalness={0.2} />
-        </mesh>
-        
-        {/* Glow / Reflection under nodes */}
-        <ContactShadows position={[0, -1.9, 0]} opacity={0.4} scale={50} blur={2} far={4} />
-
       </Canvas>
     </div>
   );

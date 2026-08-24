@@ -1,93 +1,161 @@
-import { Canvas } from "@react-three/fiber";
-import { useMemo, useEffect, useState } from "react";
-import { useGameProgress } from "../context/GameProgressContext";
-import { OrbitControls, Float, Text } from "@react-three/drei";
+import React, { useMemo, useRef } from "react";
+import { Canvas, useFrame } from "@react-three/fiber";
+import { OrbitControls, Text, Stars } from "@react-three/drei";
+import * as THREE from "three";
 
-function GraphNode({
+// --- 1. Amethyst Crystal Vertex Node ---
+const GraphNode = React.memo(function GraphNode({
   position,
   value,
   index,
-  highlighted,
+  isHighlighted = false,
+  isInPath = false,
 }) {
-  const [spawned, setSpawned] = useState(false);
+  const groupRef = useRef();
+  const haloRef = useRef();
 
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      setSpawned(true);
-    }, index * 120);
+  useFrame((state) => {
+    const t = state.clock.getElapsedTime();
+    if (groupRef.current) {
+      // Floating hover loop
+      groupRef.current.position.y = position[1] + Math.sin(t * 2.5 + index * 0.9) * 0.08;
+    }
+    if (haloRef.current) {
+      haloRef.current.rotation.z = t * 2.2;
+    }
+  });
 
-    return () => clearTimeout(timeout);
-  }, [index]);
+  const isSpecial = isHighlighted || isInPath;
+  const mainColor = isInPath ? "#38bdf8" : isHighlighted ? "#a855f7" : "#7c3aed";
+  const emissiveColor = isInPath ? "#0284c7" : isHighlighted ? "#9333ea" : "#6d28d9";
+  const wireColor = isInPath ? "#bae6fd" : isHighlighted ? "#e9d5ff" : "#c4b5fd";
 
   return (
-    <Float speed={2} rotationIntensity={0.2} floatIntensity={0.4}>
-      <group position={position}>
-        <mesh
-          scale={
-            highlighted
-              ? 1.28
-              : spawned
-              ? 1
-              : 0
-          }
-        >
-          <sphereGeometry args={[0.45, 32, 32]} />
+    <group ref={groupRef} position={[position[0], position[1], position[2]]}>
+      {/* Orbiting Energy Halo on Highlight / Shortest Path */}
+      {isSpecial && (
+        <group ref={haloRef}>
+          <mesh rotation={[-Math.PI / 4, 0, 0]}>
+            <ringGeometry args={[0.85, 1.0, 32]} />
+            <meshBasicMaterial color={wireColor} transparent opacity={0.85} side={2} />
+          </mesh>
+        </group>
+      )}
 
-          <meshStandardMaterial
-            color={highlighted ? "#67e8f9" : "#0891b2"}
-            emissive="#22d3ee"
-            emissiveIntensity={highlighted ? 5 : 1.8}
-            metalness={0.35}
-            roughness={0.3}
-          />
-        </mesh>
+      {/* Crystal Core Sphere */}
+      <mesh castShadow receiveShadow>
+        <sphereGeometry args={[0.62, 32, 32]} />
+        <meshStandardMaterial
+          color={mainColor}
+          emissive={emissiveColor}
+          emissiveIntensity={isSpecial ? 4.5 : 1.8}
+          metalness={0.25}
+          roughness={0.15}
+        />
+      </mesh>
 
-        <Text
-          position={[0, 0, 0.65]}
-          fontSize={0.42}
-          color="#ffffff"
-          anchorX="center"
-          anchorY="middle"
-          outlineWidth={0.03}
-          outlineColor="#000000"
-          renderOrder={10}
-        >
-          {String(value)}
-        </Text>
-      </group>
-    </Float>
+      {/* Outer Wireframe Energy Shell */}
+      <mesh>
+        <sphereGeometry args={[0.63, 16, 16]} />
+        <meshBasicMaterial
+          color={wireColor}
+          wireframe
+          transparent
+          opacity={isSpecial ? 0.65 : 0.25}
+        />
+      </mesh>
+
+      {/* Laser-Etched Vertex Label */}
+      <Text
+        position={[0, 0, 0.74]}
+        fontSize={0.46}
+        color="#ffffff"
+        fontWeight="900"
+        anchorX="center"
+        anchorY="middle"
+        outlineWidth={0.04}
+        outlineColor="#0f172a"
+        renderOrder={10}
+      >
+        {String(value)}
+      </Text>
+    </group>
   );
-}
+});
 
-function Edge({ start, end }) {
+// --- 2. Holographic Laser Edge with Photon Pulse Runner ---
+const Edge = React.memo(function Edge({
+  start,
+  end,
+  isHighlighted = false,
+  isPathEdge = false,
+}) {
+  const pulseRef = useRef();
+
+  const startVec = useMemo(() => new THREE.Vector3(...start), [start]);
+  const endVec = useMemo(() => new THREE.Vector3(...end), [end]);
   const dx = end[0] - start[0];
   const dy = end[1] - start[1];
-
-  const length = Math.sqrt(dx * dx + dy * dy);
-
-  const angle = Math.atan2(dx, dy);
+  const dz = (end[2] || 0) - (start[2] || 0);
+  const length = Math.sqrt(dx * dx + dy * dy + dz * dz);
+  const angleZ = Math.atan2(dx, dy);
 
   const mid = [
     (start[0] + end[0]) / 2,
     (start[1] + end[1]) / 2,
-    0,
+    (start[2] || 0) + (end[2] || 0) / 2,
   ];
 
-  return (
-    <mesh
-      position={mid}
-      rotation={[0, 0, -angle]}
-    >
-      <boxGeometry args={[0.12, length, 0.12]} />
+  // Animate photon packet traveling along the shortest path
+  useFrame((state) => {
+    if (pulseRef.current && isPathEdge) {
+      const t = (state.clock.getElapsedTime() * 1.5) % 1;
+      const cur = new THREE.Vector3().lerpVectors(startVec, endVec, t);
+      pulseRef.current.position.set(cur.x, cur.y, cur.z);
+    }
+  });
 
-      <meshStandardMaterial
-        color="#67e8f9"
-        emissive="#22d3ee"
-        emissiveIntensity={2}
-      />
-    </mesh>
+  const edgeColor = isPathEdge ? "#38bdf8" : isHighlighted ? "#c084fc" : "#7c3aed";
+  const emissiveColor = isPathEdge ? "#0284c7" : isHighlighted ? "#9333ea" : "#581c87";
+
+  return (
+    <>
+      {/* Cylindrical Laser Beam */}
+      <group position={mid} rotation={[0, 0, -angleZ]}>
+        <mesh scale={isPathEdge ? [1.6, 1, 1.6] : isHighlighted ? [1.3, 1, 1.3] : [1, 1, 1]}>
+          <cylinderGeometry args={[0.06, 0.06, length, 12]} />
+          <meshStandardMaterial
+            color={edgeColor}
+            emissive={emissiveColor}
+            emissiveIntensity={isPathEdge ? 4.5 : isHighlighted ? 3 : 1.2}
+            metalness={0.2}
+            roughness={0.2}
+          />
+        </mesh>
+
+        {/* Outer Glow Sleeve */}
+        <mesh scale={isPathEdge ? [2.0, 1, 2.0] : [1.3, 1, 1.3]}>
+          <cylinderGeometry args={[0.08, 0.08, length, 8]} />
+          <meshBasicMaterial
+            color={edgeColor}
+            transparent
+            opacity={isPathEdge ? 0.45 : 0.15}
+          />
+        </mesh>
+      </group>
+
+      {/* Traveling Photon Energy Orb on Shortest Path */}
+      {isPathEdge && (
+        <mesh ref={pulseRef}>
+          <sphereGeometry args={[0.18, 16, 16]} />
+          <meshBasicMaterial color="#ffffff" />
+        </mesh>
+      )}
+    </>
   );
-}
+});
+
+// --- Main World Component ---
 
 export default function GraphWorld({
   nodes = ["A", "B", "C", "D"],
@@ -96,24 +164,19 @@ export default function GraphWorld({
     ["A", "C"],
     ["B", "D"],
   ],
+  shortestPath = [],
   highlightedNode,
 }) {
-  const {
-    addXP,
-    incrementStat,
-    unlockAchievement,
-  } = useGameProgress();
   const graphLayout = useMemo(() => {
     if (nodes.length === 0) return [];
 
     if (edges.length === 0) {
-      const spacing = 3;
-
+      const spacing = 3.2;
       return nodes.map((value, index) => ({
         value,
         position: [
           (index - (nodes.length - 1) / 2) * spacing,
-          2,
+          1.8,
           0,
         ],
       }));
@@ -121,14 +184,13 @@ export default function GraphWorld({
 
     const root = nodes[0];
     const adjacency = {};
-
     nodes.forEach((node) => {
       adjacency[node] = [];
     });
 
     edges.forEach(([from, to]) => {
-      adjacency[from].push(to);
-      adjacency[to].push(from);
+      if (adjacency[from]) adjacency[from].push(to);
+      if (adjacency[to]) adjacency[to].push(from);
     });
 
     const levels = [[root]];
@@ -137,46 +199,26 @@ export default function GraphWorld({
 
     while (queue.length) {
       const { node, level } = queue.shift();
-
-      adjacency[node].forEach((neighbor) => {
+      (adjacency[node] || []).forEach((neighbor) => {
         if (!visited.has(neighbor)) {
           visited.add(neighbor);
-
           if (!levels[level + 1]) {
             levels[level + 1] = [];
           }
-
           levels[level + 1].push(neighbor);
           queue.push({ node: neighbor, level: level + 1 });
         }
       });
     }
 
-    const maxLevelWidth = Math.max(
-      ...levels.map((level) => level.length)
-    );
-
-    if (maxLevelWidth === 1 && levels.length > 1) {
-      return nodes.map((value, index) => ({
-        value,
-        position: [
-          index * 3 - ((nodes.length - 1) * 3) / 2,
-          1,
-          0,
-        ],
-      }));
-    }
-
     const positionMap = {};
-
     levels.forEach((levelNodes, levelIndex) => {
-      const spacing = 5;
+      const spacing = 4.2;
       const totalWidth = (levelNodes.length - 1) * spacing;
-
       levelNodes.forEach((node, index) => {
         positionMap[node] = [
           index * spacing - totalWidth / 2,
-          5 - levelIndex * 2,
+          4.5 - levelIndex * 2.6,
           0,
         ];
       });
@@ -184,7 +226,7 @@ export default function GraphWorld({
 
     nodes.forEach((node) => {
       if (!positionMap[node]) {
-        positionMap[node] = [0, -4, 0];
+        positionMap[node] = [0, -3.5, 0];
       }
     });
 
@@ -194,93 +236,116 @@ export default function GraphWorld({
     }));
   }, [nodes, edges]);
 
-  useEffect(() => {
-    if (nodes.length > 0) {
-      incrementStat("graphOperations");
-      addXP(5);
-    }
+  const nodePositions = useMemo(() => {
+    return Object.fromEntries(
+      graphLayout.map((node) => [node.value, node.position])
+    );
+  }, [graphLayout]);
 
-    if (nodes.length >= 5) {
-      unlockAchievement("🌐 Graph Explorer");
+  const isEdgeInShortestPath = (from, to) => {
+    if (!shortestPath || shortestPath.length < 2) return false;
+    for (let i = 0; i < shortestPath.length - 1; i++) {
+      const u = shortestPath[i];
+      const v = shortestPath[i + 1];
+      if ((u === from && v === to) || (u === to && v === from)) {
+        return true;
+      }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nodes.length]);
+    return false;
+  };
 
-  const nodePositions = Object.fromEntries(
-    graphLayout.map((node) => [
-      node.value,
-      node.position,
-    ])
-  );
   return (
     <Canvas
-      camera={{ position: [0, 1, 20], fov: 62 }}
+      dpr={[1, 1.5]}
+      gl={{ powerPreference: "high-performance", antialias: true, alpha: true }}
+      performance={{ min: 0.8 }}
+      camera={{ position: [0, 2.5, 18], fov: 54 }}
       style={{
-        width: "100vw",
-        height: "100vh",
+        width: "100%",
+        height: "100%",
         background: "transparent",
       }}
     >
-      <ambientLight intensity={1} />
+      <ambientLight intensity={1.4} />
 
       <directionalLight
-        position={[5, 10, 5]}
-        intensity={4}
-        color="#22d3ee"
+        position={[6, 12, 6]}
+        intensity={3.5}
+        color="#ffffff"
       />
 
-      <fog attach="fog" args={["#020617", 12, 24]} />
+      <directionalLight
+        position={[-6, 8, -6]}
+        intensity={1.5}
+        color="#a855f7"
+      />
 
-      {graphLayout.map((node, index) => (
-        <GraphNode
-          key={index}
-          position={node.position}
-          value={node.value}
-          index={index}
-          highlighted={highlightedNode === index}
-        />
-      ))}
+      <pointLight
+        position={[0, 4, 6]}
+        intensity={10}
+        color="#8b5cf6"
+      />
 
+      {/* Cyberpunk Starfield */}
+      <Stars
+        radius={75}
+        depth={40}
+        count={500}
+        factor={3}
+        saturation={0}
+        fade
+        speed={0.3}
+      />
+
+      {/* Holographic Laser Edges */}
       {edges.map(([from, to], index) => {
         const start = nodePositions[from];
         const end = nodePositions[to];
-
         if (!start || !end) return null;
+
+        const isPathEdge = isEdgeInShortestPath(from, to);
+        const isHighlighted =
+          highlightedNode !== null &&
+          (nodes.indexOf(from) === highlightedNode || nodes.indexOf(to) === highlightedNode);
 
         return (
           <Edge
-            key={`edge-${index}`}
+            key={`edge-${from}-${to}-${index}`}
             start={start}
             end={end}
+            isHighlighted={isHighlighted}
+            isPathEdge={isPathEdge}
           />
         );
       })}
 
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -5, 0]}>
-        <planeGeometry args={[40, 40]} />
+      {/* Amethyst Crystal Vertices */}
+      {graphLayout.map((node, index) => {
+        const isInPath = Array.isArray(shortestPath) && shortestPath.includes(node.value);
+        const isHighlighted = highlightedNode === index || highlightedNode === node.value;
 
-        <meshStandardMaterial
-          color="#020617"
-          metalness={0.2}
-          roughness={0.8}
-        />
-      </mesh>
+        return (
+          <GraphNode
+            key={`node-${node.value}-${index}`}
+            position={node.position}
+            value={node.value}
+            index={index}
+            isHighlighted={isHighlighted}
+            isInPath={isInPath}
+          />
+        );
+      })}
 
-      <mesh position={[0, -4.95, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[2, 4, 64]} />
 
-        <meshStandardMaterial
-          color="#22d3ee"
-          emissive="#22d3ee"
-          emissiveIntensity={2}
-          side={2}
-        />
-      </mesh>
 
       <OrbitControls
         enablePan={true}
         minDistance={8}
-        maxDistance={30}
+        maxDistance={38}
+        minPolarAngle={Math.PI / 4}
+        maxPolarAngle={Math.PI / 1.95}
+        enableDamping
+        dampingFactor={0.08}
       />
     </Canvas>
   );
