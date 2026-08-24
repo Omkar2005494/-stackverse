@@ -20,7 +20,7 @@ export function detectLanguageFromCode(code) {
   if (!code || typeof code !== "string") return "javascript";
   const lower = code.toLowerCase();
 
-  if (code.includes("#include") && (lower.includes("iostream") || lower.includes("vector") || lower.includes("using namespace std"))) {
+  if (code.includes("#include") && (lower.includes("iostream") || lower.includes("vector") || lower.includes("using namespace std") || lower.includes("stack") || lower.includes("queue"))) {
     return "cpp";
   }
   if (code.includes("#include") && lower.includes("stdio.h")) {
@@ -29,7 +29,7 @@ export function detectLanguageFromCode(code) {
   if (code.includes("public class") || code.includes("public static void main") || code.includes("System.out.print")) {
     return "java";
   }
-  if (/^\s*def\s+[a-zA-Z_]/m.test(code) || /^\s*class\s+[a-zA-Z_].*:/m.test(code) || code.includes("print(") || code.includes("range(") || code.includes("elif ")) {
+  if (/^\s*def\s+[a-zA-Z_]/m.test(code) || /^\s*class\s+[a-zA-Z_].*:/m.test(code) || code.includes("print(") || code.includes("range(") || code.includes("elif ") || code.includes("import ")) {
     return "python";
   }
 
@@ -52,7 +52,7 @@ export function detectRealmFromCode(code) {
     lower.includes("top <=") ||
     lower.includes("bottom >=") ||
     /\[\s*\[\s*\d+/.test(code) ||
-    /\{\s*\{\s*\d+/.test(code) || // C++ / Java {{1, 2}, {3, 4}}
+    /\{\s*\{\s*\d+/.test(code) || // C++ / Java / C {{1, 2}, {3, 4}}
     /\[\s*[a-zA-Z_$][a-zA-Z0-9_$]*\s*\]\s*\[\s*[a-zA-Z_$][a-zA-Z0-9_$]*\s*\]/.test(code)
   ) {
     return "matrix";
@@ -183,13 +183,9 @@ function pythonToJavaScript(pyCode) {
     }
 
     // 2. Range loops
-    // for i in range(start, stop, step):
     line = line.replace(/for\s+([a-zA-Z_][a-zA-Z0-9_]*)\s+in\s+range\(([^,]+),\s*([^,]+),\s*([^)]+)\)\s*:/g, "for (let $1 = $2; $1 < $3; $1 += $4) {");
-    // for i in range(start, stop):
     line = line.replace(/for\s+([a-zA-Z_][a-zA-Z0-9_]*)\s+in\s+range\(([^,]+),\s*([^)]+)\)\s*:/g, "for (let $1 = $2; $1 < $3; $1++) {");
-    // for i in range(stop):
     line = line.replace(/for\s+([a-zA-Z_][a-zA-Z0-9_]*)\s+in\s+range\(([^)]+)\)\s*:/g, "for (let $1 = 0; $1 < $2; $1++) {");
-    // for item in iterable:
     line = line.replace(/for\s+([a-zA-Z_][a-zA-Z0-9_]*)\s+in\s+([^:]+):/g, "for (let $1 of $2) {");
 
     // 3. Conditionals & while
@@ -205,16 +201,23 @@ function pythonToJavaScript(pyCode) {
     });
     line = line.replace(/class\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:\([^)]*\))?\s*:/g, "class $1 {");
 
-    // 5. Python builtins
+    // 5. Python methods & builtins
     line = line.replace(/\blen\(([^)]+)\)/g, "$1.length");
     line = line.replace(/\bprint\(/g, "console.log(");
     line = line.replace(/\.append\(/g, ".push(");
+    line = line.replace(/\.pop\(0\)/g, ".shift()");
     line = line.replace(/\bTrue\b/g, "true");
     line = line.replace(/\bFalse\b/g, "false");
     line = line.replace(/\bNone\b/g, "null");
     line = line.replace(/\band\b/g, "&&");
     line = line.replace(/\bor\b/g, "||");
     line = line.replace(/\bnot\b/g, "!");
+
+    // Helper method translations
+    line = line.replace(/graph\.add_vertex\(/g, "graph.addVertex(");
+    line = line.replace(/graph\.add_edge\(/g, "graph.addEdge(");
+    line = line.replace(/heap\.extract_root\(/g, "heap.extractRoot(");
+    line = line.replace(/list\.insert_head\(/g, "list.insertHead(");
 
     // Check if block was opened
     if (rawLine.trim().endsWith(":")) {
@@ -275,19 +278,23 @@ function cppJavaToJavaScript(code) {
   js = js.replace(/=\s*\{([^}]+)\};/g, "= [$1];");
 
   // 7. Strip C++ / Java / C types in declarations
-  js = js.replace(/\b(?:vector<vector<[a-zA-Z0-9_]+>>|vector<[a-zA-Z0-9_]+>|int\[\]\[\]|int\[\]|int|float|double|char|bool|auto|long|void|size_t)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=/g, "let $1 =");
-  js = js.replace(/\b(?:vector<vector<[a-zA-Z0-9_]+>>|vector<[a-zA-Z0-9_]+>|int\[\]\[\]|int\[\]|int|float|double|char|bool|auto|long|void|size_t)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*;/g, "let $1;");
+  js = js.replace(/\b(?:vector<vector<[a-zA-Z0-9_]+>>|vector<[a-zA-Z0-9_]+>|stack<[a-zA-Z0-9_]+>|queue<[a-zA-Z0-9_]+>|int\[\]\[\]|int\[\]|int\s+[a-zA-Z0-9_]+\[\d*\]\[\d*\]|int\s+[a-zA-Z0-9_]+\[\d*\]|int|float|double|char|bool|auto|long|void|size_t)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=/g, "let $1 =");
+  js = js.replace(/\b(?:vector<vector<[a-zA-Z0-9_]+>>|vector<[a-zA-Z0-9_]+>|stack<[a-zA-Z0-9_]+>|queue<[a-zA-Z0-9_]+>|int\[\]\[\]|int\[\]|int|float|double|char|bool|auto|long|void|size_t)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*;/g, "let $1;");
 
-  // 8. Convert C++ swap(a, b) or swap(arr[i], arr[j])
+  // 8. Convert Java for-each loop: for (int val : values) -> for (let val of values)
+  js = js.replace(/for\s*\(\s*(?:int|float|double|String|auto|var)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*:\s*([^)]+)\)/g, "for (let $1 of $2)");
+
+  // 9. Convert C++ swap(a, b) or swap(arr[i], arr[j])
   js = js.replace(/\bswap\s*\(\s*([a-zA-Z0-9_\[\]]+)\s*,\s*([a-zA-Z0-9_\[\]]+)\s*\);/g, (m, a, b) => {
     return `[${a}, ${b}] = [${b}, ${a}];`;
   });
 
-  // 9. Methods: .size() -> .length, push_back() -> push()
+  // 10. Methods: .size() -> .length, push_back() -> push(), reverse(...)
   js = js.replace(/\.size\(\)/g, ".length");
   js = js.replace(/\.push_back\(/g, ".push(");
+  js = js.replace(/reverse\s*\(\s*([a-zA-Z0-9_\[\]]+)\.begin\(\)\s*,\s*[a-zA-Z0-9_\[\]]+\.end\(\)\s*\);/g, "$1.reverse();");
 
-  // 10. Auto-invoke __main__() if defined
+  // 11. Auto-invoke __main__() if defined
   if (js.includes("function __main__()")) {
     js += "\n__main__();\n";
   }
@@ -401,7 +408,7 @@ export function parseCodeTo3DActions(code, realm = "sorting", language = "auto")
 
   // 2. Detect 1D Array Literal (e.g. let arr = [60, 20, 80, 10, 40];)
   if (!initialMatrix) {
-    const initialArrMatch = executableJS.match(/(?:let|const|var)\s+(?:arr|array|nums|data)\s*=\s*\[([^\]]+)\]/);
+    const initialArrMatch = executableJS.match(/(?:let|const|var)\s+(?:arr|array|nums|data|values)\s*=\s*\[([^\]]+)\]/);
     if (initialArrMatch) {
       try {
         const parsedElements = initialArrMatch[1]
@@ -656,7 +663,7 @@ export function parseCodeTo3DActions(code, realm = "sorting", language = "auto")
       },
     },
 
-    // 6. Graph Realm Helper (supports alphanumeric vertices)
+    // 6. Graph Realm Helper
     graph: {
       addVertex(v) {
         recordAction({
@@ -939,6 +946,7 @@ export function parseCodeTo3DActions(code, realm = "sorting", language = "auto")
     runtimeEnv.arr = createInstrumentedArray(initialArray, false);
     runtimeEnv.array_data = runtimeEnv.arr;
     runtimeEnv.nums = runtimeEnv.arr;
+    runtimeEnv.values = runtimeEnv.arr;
   }
 
   // Execute in isolated, hardened function sandbox

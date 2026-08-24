@@ -41,11 +41,11 @@ const LANGUAGES = [
   { id: "c", label: "C", icon: "🔤" },
 ];
 
-// --- MULTI-LANGUAGE STARTER SNIPPETS ---
+// --- 100% COMPLETE MULTI-LANGUAGE DSA SNIPPETS ---
 const MULTI_LANG_TEMPLATES = {
   javascript: [
     {
-      name: "Spiral Matrix (2D)",
+      name: "Spiral Matrix",
       realm: "matrix",
       code: `// 🌀 2D Spiral Matrix Traversal in JavaScript
 let grid = [
@@ -73,6 +73,30 @@ while (top <= bottom && left <= right) {
 }`,
     },
     {
+      name: "Matrix Rotate 90°",
+      realm: "matrix",
+      code: `// 🔄 90° Matrix Rotation in JavaScript
+let grid = [
+  [ 1,  2,  3 ],
+  [ 4,  5,  6 ],
+  [ 7,  8,  9 ]
+];
+
+let n = grid.length;
+for (let i = 0; i < n; i++) {
+  for (let j = i + 1; j < n; j++) {
+    matrix.swap([i, j], [j, i]);
+    let temp = grid[i][j];
+    grid[i][j] = grid[j][i];
+    grid[j][i] = temp;
+  }
+}
+for (let i = 0; i < n; i++) {
+  matrix.reverseRow(i);
+  grid[i].reverse();
+}`,
+    },
+    {
       name: "Bubble Sort",
       realm: "sorting",
       code: `// Bubble Sort in JavaScript
@@ -91,9 +115,30 @@ for (let i = 0; i < arr.length; i++) {
 }`,
     },
     {
+      name: "Binary Search",
+      realm: "sorting",
+      code: `// Binary Search in JavaScript
+let arr = [10, 20, 30, 40, 50, 60, 70];
+let target = 50;
+let left = 0, right = arr.length - 1;
+
+while (left <= right) {
+  let mid = Math.floor((left + right) / 2);
+  array.compare(mid, mid);
+  if (arr[mid] === target) {
+    console.log("Found at index:", mid);
+    break;
+  } else if (arr[mid] < target) {
+    left = mid + 1;
+  } else {
+    right = mid - 1;
+  }
+}`,
+    },
+    {
       name: "BST Construction",
       realm: "tree",
-      code: `// Binary Search Tree (BST)
+      code: `// Binary Search Tree (BST) in JavaScript
 let values = [50, 25, 75, 12, 37, 62, 87];
 for (let val of values) {
   tree.insert(val);
@@ -101,9 +146,9 @@ for (let val of values) {
 tree.search(37);`,
     },
     {
-      name: "Graph Routing (BFS)",
+      name: "Graph Routing",
       realm: "graph",
-      code: `// Graph Network & BFS Traversal
+      code: `// Graph Network & BFS in JavaScript
 graph.addVertex("A");
 graph.addVertex("B");
 graph.addVertex("C");
@@ -116,11 +161,41 @@ graph.addEdge("C", "D");
 
 graph.bfs("A");`,
     },
+    {
+      name: "Stack Tower",
+      realm: "stack",
+      code: `// Stack Tower (LIFO) in JavaScript
+for (let i = 1; i <= 5; i++) {
+  stack.push(i * 15);
+}
+stack.pop();
+stack.push(99);`,
+    },
+    {
+      name: "Queue Stream",
+      realm: "queue",
+      code: `// Queue Stream (FIFO) in JavaScript
+queue.enqueue(10);
+queue.enqueue(20);
+queue.enqueue(30);
+queue.dequeue();
+queue.enqueue(40);`,
+    },
+    {
+      name: "Min-Heap Sift",
+      realm: "heap",
+      code: `// Min-Heap Invariant in JavaScript
+heap.insert(40);
+heap.insert(20);
+heap.insert(60);
+heap.insert(10);
+heap.extractRoot();`,
+    },
   ],
 
   python: [
     {
-      name: "Spiral Matrix (Python)",
+      name: "Spiral Matrix",
       realm: "matrix",
       code: `# 🌀 2D Spiral Matrix Traversal in Python
 grid = [
@@ -135,30 +210,46 @@ left = 0
 right = len(grid[0]) - 1
 
 while top <= bottom and left <= right:
-    # 1. Top row
     for c in range(left, right + 1):
         print(f"Visited [{top}][{c}]")
     top += 1
 
-    # 2. Right column
     for r in range(top, bottom + 1):
         print(f"Visited [{r}][{right}]")
     right -= 1
 
-    # 3. Bottom row
     if top <= bottom:
         for c in range(right, left - 1, -1):
             print(f"Visited [{bottom}][{c}]")
         bottom -= 1
 
-    # 4. Left column
     if left <= right:
         for r in range(bottom, top - 1, -1):
             print(f"Visited [{r}][{left}]")
         left += 1`,
     },
     {
-      name: "Bubble Sort (Python)",
+      name: "Matrix Rotate 90°",
+      realm: "matrix",
+      code: `# 🔄 90° Matrix Rotation in Python
+grid = [
+    [1, 2, 3],
+    [4, 5, 6],
+    [7, 8, 9]
+]
+
+n = len(grid)
+# Step 1: Transpose matrix
+for i in range(n):
+    for j in range(i + 1, n):
+        grid[i][j], grid[j][i] = grid[j][i], grid[i][j]
+
+# Step 2: Reverse each row
+for i in range(n):
+    grid[i].reverse()`,
+    },
+    {
+      name: "Bubble Sort",
       realm: "sorting",
       code: `# Bubble Sort in Python
 arr = [60, 20, 80, 10, 40]
@@ -167,14 +258,32 @@ n = len(arr)
 for i in range(n):
     for j in range(0, n - i - 1):
         if arr[j] > arr[j + 1]:
-            # In-place Python Tuple Swap
             arr[j], arr[j + 1] = arr[j + 1], arr[j]
             print(f"Swapped index {j} with {j+1}")`,
     },
     {
-      name: "BST Construction (Python)",
+      name: "Binary Search",
+      realm: "sorting",
+      code: `# Binary Search in Python
+arr = [10, 20, 30, 40, 50, 60, 70]
+target = 50
+left = 0
+right = len(arr) - 1
+
+while left <= right:
+    mid = (left + right) // 2
+    if arr[mid] == target:
+        print(f"Found target at index: {mid}")
+        break
+    elif arr[mid] < target:
+        left = mid + 1
+    else:
+        right = mid - 1`,
+    },
+    {
+      name: "BST Construction",
       realm: "tree",
-      code: `# Binary Search Tree (Python)
+      code: `# Binary Search Tree in Python
 values = [50, 25, 75, 12, 37, 62, 87]
 
 for val in values:
@@ -182,11 +291,57 @@ for val in values:
 
 tree.search(37)`,
     },
+    {
+      name: "Graph Routing",
+      realm: "graph",
+      code: `# Graph Network & BFS in Python
+graph.add_vertex("A")
+graph.add_vertex("B")
+graph.add_vertex("C")
+graph.add_vertex("D")
+
+graph.add_edge("A", "B")
+graph.add_edge("A", "C")
+graph.add_edge("B", "D")
+graph.add_edge("C", "D")
+
+graph.bfs("A")`,
+    },
+    {
+      name: "Stack Tower",
+      realm: "stack",
+      code: `# Stack Operations in Python
+for i in range(1, 6):
+    stack.push(i * 15)
+
+stack.pop()
+stack.push(99)`,
+    },
+    {
+      name: "Queue Stream",
+      realm: "queue",
+      code: `# Queue Operations in Python
+queue.enqueue(10)
+queue.enqueue(20)
+queue.enqueue(30)
+queue.dequeue()
+queue.enqueue(40)`,
+    },
+    {
+      name: "Min-Heap Sift",
+      realm: "heap",
+      code: `# Min-Heap in Python
+heap.insert(40)
+heap.insert(20)
+heap.insert(60)
+heap.insert(10)
+heap.extract_root()`,
+    },
   ],
 
   cpp: [
     {
-      name: "Spiral Matrix (C++)",
+      name: "Spiral Matrix",
       realm: "matrix",
       code: `// 🌀 2D Spiral Matrix in C++
 #include <iostream>
@@ -232,7 +387,35 @@ int main() {
 }`,
     },
     {
-      name: "Bubble Sort (C++)",
+      name: "Matrix Rotate 90°",
+      realm: "matrix",
+      code: `// 🔄 90° Matrix Rotation in C++
+#include <iostream>
+#include <vector>
+#include <algorithm>
+using namespace std;
+
+int main() {
+    vector<vector<int>> grid = {
+        {1, 2, 3},
+        {4, 5, 6},
+        {7, 8, 9}
+    };
+
+    int n = grid.size();
+    for (int i = 0; i < n; i++) {
+        for (int j = i + 1; j < n; j++) {
+            swap(grid[i][j], grid[j][i]);
+        }
+    }
+    for (int i = 0; i < n; i++) {
+        reverse(grid[i].begin(), grid[i].end());
+    }
+    return 0;
+}`,
+    },
+    {
+      name: "Bubble Sort",
       realm: "sorting",
       code: `// Bubble Sort in C++
 #include <iostream>
@@ -256,11 +439,127 @@ int main() {
     return 0;
 }`,
     },
+    {
+      name: "Binary Search",
+      realm: "sorting",
+      code: `// Binary Search in C++
+#include <iostream>
+#include <vector>
+using namespace std;
+
+int main() {
+    vector<int> arr = {10, 20, 30, 40, 50, 60, 70};
+    int target = 50;
+    int left = 0, right = arr.size() - 1;
+
+    while (left <= right) {
+        int mid = left + (right - left) / 2;
+        if (arr[mid] == target) {
+            cout << "Found target at index: " << mid << endl;
+            break;
+        } else if (arr[mid] < target) {
+            left = mid + 1;
+        } else {
+            right = mid - 1;
+        }
+    }
+    return 0;
+}`,
+    },
+    {
+      name: "BST Construction",
+      realm: "tree",
+      code: `// Binary Search Tree in C++
+#include <iostream>
+#include <vector>
+using namespace std;
+
+int main() {
+    vector<int> values = {50, 25, 75, 12, 37, 62, 87};
+    for (int val : values) {
+        tree.insert(val);
+    }
+    tree.search(37);
+    return 0;
+}`,
+    },
+    {
+      name: "Graph Routing",
+      realm: "graph",
+      code: `// Graph Network & BFS in C++
+#include <iostream>
+using namespace std;
+
+int main() {
+    graph.addVertex("A");
+    graph.addVertex("B");
+    graph.addVertex("C");
+    graph.addVertex("D");
+
+    graph.addEdge("A", "B");
+    graph.addEdge("A", "C");
+    graph.addEdge("B", "D");
+    graph.addEdge("C", "D");
+
+    graph.bfs("A");
+    return 0;
+}`,
+    },
+    {
+      name: "Stack Tower",
+      realm: "stack",
+      code: `// Stack Tower in C++
+#include <iostream>
+#include <stack>
+using namespace std;
+
+int main() {
+    for (int i = 1; i <= 5; i++) {
+        stack.push(i * 15);
+    }
+    stack.pop();
+    stack.push(99);
+    return 0;
+}`,
+    },
+    {
+      name: "Queue Stream",
+      realm: "queue",
+      code: `// Queue Stream in C++
+#include <iostream>
+#include <queue>
+using namespace std;
+
+int main() {
+    queue.enqueue(10);
+    queue.enqueue(20);
+    queue.enqueue(30);
+    queue.dequeue();
+    queue.enqueue(40);
+    return 0;
+}`,
+    },
+    {
+      name: "Min-Heap Sift",
+      realm: "heap",
+      code: `// Min-Heap in C++
+#include <iostream>
+using namespace std;
+
+int main() {
+    heap.insert(40);
+    heap.insert(20);
+    heap.insert(60);
+    heap.insert(10);
+    heap.extractRoot();
+    return 0;
+}`,
+    },
   ],
 
   java: [
     {
-      name: "Spiral Matrix (Java)",
+      name: "Spiral Matrix",
       realm: "matrix",
       code: `// 🌀 2D Spiral Matrix in Java
 public class Solution {
@@ -303,7 +602,33 @@ public class Solution {
 }`,
     },
     {
-      name: "Bubble Sort (Java)",
+      name: "Matrix Rotate 90°",
+      realm: "matrix",
+      code: `// 🔄 90° Matrix Rotation in Java
+public class Solution {
+    public static void main(String[] args) {
+        int[][] grid = {
+            {1, 2, 3},
+            {4, 5, 6},
+            {7, 8, 9}
+        };
+
+        int n = grid.length;
+        for (int i = 0; i < n; i++) {
+            for (int j = i + 1; j < n; j++) {
+                int temp = grid[i][j];
+                grid[i][j] = grid[j][i];
+                grid[j][i] = temp;
+            }
+        }
+        for (int i = 0; i < n; i++) {
+            matrix.reverseRow(i);
+        }
+    }
+}`,
+    },
+    {
+      name: "Bubble Sort",
       realm: "sorting",
       code: `// Bubble Sort in Java
 public class Solution {
@@ -323,11 +648,182 @@ public class Solution {
     }
 }`,
     },
+    {
+      name: "Binary Search",
+      realm: "sorting",
+      code: `// Binary Search in Java
+public class Solution {
+    public static void main(String[] args) {
+        int[] arr = {10, 20, 30, 40, 50, 60, 70};
+        int target = 50;
+        int left = 0, right = arr.length - 1;
+
+        while (left <= right) {
+            int mid = (left + right) / 2;
+            if (arr[mid] == target) {
+                System.out.println("Found: " + mid);
+                break;
+            } else if (arr[mid] < target) {
+                left = mid + 1;
+            } else {
+                right = mid - 1;
+            }
+        }
+    }
+}`,
+    },
+    {
+      name: "BST Construction",
+      realm: "tree",
+      code: `// Binary Search Tree in Java
+public class Solution {
+    public static void main(String[] args) {
+        int[] values = {50, 25, 75, 12, 37, 62, 87};
+        for (int val : values) {
+            tree.insert(val);
+        }
+        tree.search(37);
+    }
+}`,
+    },
+    {
+      name: "Graph Routing",
+      realm: "graph",
+      code: `// Graph Network & BFS in Java
+public class Solution {
+    public static void main(String[] args) {
+        graph.addVertex("A");
+        graph.addVertex("B");
+        graph.addVertex("C");
+        graph.addVertex("D");
+
+        graph.addEdge("A", "B");
+        graph.addEdge("A", "C");
+        graph.addEdge("B", "D");
+        graph.addEdge("C", "D");
+
+        graph.bfs("A");
+    }
+}`,
+    },
+    {
+      name: "Stack Tower",
+      realm: "stack",
+      code: `// Stack Operations in Java
+public class Solution {
+    public static void main(String[] args) {
+        for (int i = 1; i <= 5; i++) {
+            stack.push(i * 15);
+        }
+        stack.pop();
+        stack.push(99);
+    }
+}`,
+    },
+    {
+      name: "Queue Stream",
+      realm: "queue",
+      code: `// Queue Operations in Java
+public class Solution {
+    public static void main(String[] args) {
+        queue.enqueue(10);
+        queue.enqueue(20);
+        queue.enqueue(30);
+        queue.dequeue();
+        queue.enqueue(40);
+    }
+}`,
+    },
+    {
+      name: "Min-Heap Sift",
+      realm: "heap",
+      code: `// Min-Heap in Java
+public class Solution {
+    public static void main(String[] args) {
+        heap.insert(40);
+        heap.insert(20);
+        heap.insert(60);
+        heap.insert(10);
+        heap.extractRoot();
+    }
+}`,
+    },
   ],
 
   c: [
     {
-      name: "Bubble Sort (C)",
+      name: "Spiral Matrix",
+      realm: "matrix",
+      code: `// 🌀 2D Spiral Matrix in C
+#include <stdio.h>
+
+int main() {
+    int grid[3][3] = {
+        {1, 2, 3},
+        {4, 5, 6},
+        {7, 8, 9}
+    };
+
+    int top = 0, bottom = 2;
+    int left = 0, right = 2;
+
+    while (top <= bottom && left <= right) {
+        for (int c = left; c <= right; c++) {
+            printf("Visited [%d][%d]\\n", top, c);
+        }
+        top++;
+
+        for (int r = top; r <= bottom; r++) {
+            printf("Visited [%d][%d]\\n", r, right);
+        }
+        right--;
+
+        if (top <= bottom) {
+            for (int c = right; c >= left; c--) {
+                printf("Visited [%d][%d]\\n", bottom, c);
+            }
+            bottom--;
+        }
+
+        if (left <= right) {
+            for (int r = bottom; r >= top; r--) {
+                printf("Visited [%d][%d]\\n", r, left);
+            }
+            left++;
+        }
+    }
+    return 0;
+}`,
+    },
+    {
+      name: "Matrix Rotate 90°",
+      realm: "matrix",
+      code: `// 🔄 90° Matrix Rotation in C
+#include <stdio.h>
+
+int main() {
+    int grid[3][3] = {
+        {1, 2, 3},
+        {4, 5, 6},
+        {7, 8, 9}
+    };
+
+    int n = 3;
+    for (int i = 0; i < n; i++) {
+        for (int j = i + 1; j < n; j++) {
+            int temp = grid[i][j];
+            grid[i][j] = grid[j][i];
+            grid[j][i] = temp;
+        }
+    }
+    for (int i = 0; i < n; i++) {
+        matrix.reverseRow(i);
+    }
+    return 0;
+}`,
+    },
+    {
+      name: "Bubble Sort",
       realm: "sorting",
       code: `// Bubble Sort in C
 #include <stdio.h>
@@ -348,6 +844,112 @@ int main() {
     int arr[] = {60, 20, 80, 10, 40};
     int n = sizeof(arr) / sizeof(arr[0]);
     bubbleSort(arr, n);
+    return 0;
+}`,
+    },
+    {
+      name: "Binary Search",
+      realm: "sorting",
+      code: `// Binary Search in C
+#include <stdio.h>
+
+int main() {
+    int arr[] = {10, 20, 30, 40, 50, 60, 70};
+    int target = 50;
+    int left = 0, right = 6;
+
+    while (left <= right) {
+        int mid = (left + right) / 2;
+        if (arr[mid] == target) {
+            printf("Found target at index: %d\\n", mid);
+            break;
+        } else if (arr[mid] < target) {
+            left = mid + 1;
+        } else {
+            right = mid - 1;
+        }
+    }
+    return 0;
+}`,
+    },
+    {
+      name: "BST Construction",
+      realm: "tree",
+      code: `// Binary Search Tree in C
+#include <stdio.h>
+
+int main() {
+    int values[] = {50, 25, 75, 12, 37, 62, 87};
+    for (int i = 0; i < 7; i++) {
+        tree.insert(values[i]);
+    }
+    tree.search(37);
+    return 0;
+}`,
+    },
+    {
+      name: "Graph Routing",
+      realm: "graph",
+      code: `// Graph Network & BFS in C
+#include <stdio.h>
+
+int main() {
+    graph.addVertex("A");
+    graph.addVertex("B");
+    graph.addVertex("C");
+    graph.addVertex("D");
+
+    graph.addEdge("A", "B");
+    graph.addEdge("A", "C");
+    graph.addEdge("B", "D");
+    graph.addEdge("C", "D");
+
+    graph.bfs("A");
+    return 0;
+}`,
+    },
+    {
+      name: "Stack Tower",
+      realm: "stack",
+      code: `// Stack Operations in C
+#include <stdio.h>
+
+int main() {
+    for (int i = 1; i <= 5; i++) {
+        stack.push(i * 15);
+    }
+    stack.pop();
+    stack.push(99);
+    return 0;
+}`,
+    },
+    {
+      name: "Queue Stream",
+      realm: "queue",
+      code: `// Queue Operations in C
+#include <stdio.h>
+
+int main() {
+    queue.enqueue(10);
+    queue.enqueue(20);
+    queue.enqueue(30);
+    queue.dequeue();
+    queue.enqueue(40);
+    return 0;
+}`,
+    },
+    {
+      name: "Min-Heap Sift",
+      realm: "heap",
+      code: `// Min-Heap in C
+#include <stdio.h>
+
+int main() {
+    heap.insert(40);
+    heap.insert(20);
+    heap.insert(60);
+    heap.insert(10);
+    heap.extractRoot();
     return 0;
 }`,
     },
@@ -705,6 +1307,12 @@ export default function CodeStudio() {
   const handleSwitchRealm = (realmKey) => {
     handleReset();
     setActiveRealm(realmKey);
+    // Find matching template in current language
+    const tmpls = MULTI_LANG_TEMPLATES[selectedLanguage] || MULTI_LANG_TEMPLATES.javascript;
+    const match = tmpls.find((t) => t.realm === realmKey);
+    if (match) {
+      setCode(match.code);
+    }
     soundFX.playPeek();
   };
 
@@ -849,7 +1457,11 @@ export default function CodeStudio() {
       setVisitedCells([]);
       setSwappingCells([]);
     } else if (tmpl.realm === "sorting") {
-      setArrayData([60, 20, 80, 10, 40]);
+      if (tmpl.name.toLowerCase().includes("binary search")) {
+        setArrayData([10, 20, 30, 40, 50, 60, 70]);
+      } else {
+        setArrayData([60, 20, 80, 10, 40]);
+      }
       setComparingIndices([]);
       setSwappingIndices([]);
     } else if (tmpl.realm === "tree") {
@@ -1035,7 +1647,7 @@ export default function CodeStudio() {
           })}
         </div>
 
-        {/* Quick-Insert Algorithmic Snippets Bar */}
+        {/* Quick-Insert Algorithmic Snippets Bar (Linked directly to Selected Language) */}
         <div
           style={{
             padding: "5px 12px",
@@ -1126,7 +1738,7 @@ export default function CodeStudio() {
               setErrorMessage(null);
             }}
             onKeyDown={handleKeyDown}
-            placeholder={`// Write core ${selectedLanguage.toUpperCase()} DSA code here...\n// Supports: Python (def/range), C++ (#include/vector/swap), Java (public class/main), C (stdio/printf), JavaScript\n// Press Cmd+Enter to execute in 3D!`}
+            placeholder={`// Write core ${selectedLanguage.toUpperCase()} DSA code here...\n// Press Cmd+Enter to execute in 3D!`}
             spellCheck="false"
             style={{
               flex: 1,
