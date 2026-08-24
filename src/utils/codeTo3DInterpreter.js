@@ -264,6 +264,14 @@ export function parseCodeTo3DActions(code, realm = "sorting") {
           raw: `matrix[${r}][${c}] = ${val}`,
         });
       },
+      reverseRow(r) {
+        recordAction({
+          type: "matrix_reverse_row",
+          target: "matrix",
+          arg: Number(r),
+          raw: `matrix.reverseRow(${r})`,
+        });
+      },
     },
 
     // 2. Array & Sorting Realm Helper
@@ -439,13 +447,13 @@ export function parseCodeTo3DActions(code, realm = "sorting") {
       },
     },
 
-    // 6. Graph Realm Helper
+    // 6. Graph Realm Helper (supports both strings and numbers)
     graph: {
       addVertex(v) {
         recordAction({
           type: "addVertex",
           target: "graph",
-          arg: Number(v),
+          arg: v,
           raw: `graph.addVertex(${v})`,
         });
       },
@@ -453,7 +461,7 @@ export function parseCodeTo3DActions(code, realm = "sorting") {
         recordAction({
           type: "addEdge",
           target: "graph",
-          arg: [Number(u), Number(v)],
+          arg: [u, v],
           raw: `graph.addEdge(${u}, ${v})`,
         });
       },
@@ -461,7 +469,7 @@ export function parseCodeTo3DActions(code, realm = "sorting") {
         recordAction({
           type: "bfs",
           target: "graph",
-          arg: Number(start),
+          arg: start,
           raw: `graph.bfs(${start})`,
         });
       },
@@ -469,7 +477,7 @@ export function parseCodeTo3DActions(code, realm = "sorting") {
         recordAction({
           type: "dfs",
           target: "graph",
-          arg: Number(start),
+          arg: start,
           raw: `graph.dfs(${start})`,
         });
       },
@@ -650,8 +658,9 @@ export function parseCodeTo3DActions(code, realm = "sorting") {
         if (prop === "reverse") {
           return function () {
             recordAction({
-              type: "reverse",
+              type: is2D ? "matrix_reverse_row" : "reverse",
               target: is2D ? "matrix" : "sorting",
+              arg: rowIndex !== null ? rowIndex : 0,
               raw: `reverse()`,
             });
             return target.reverse();

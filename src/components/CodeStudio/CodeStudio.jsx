@@ -73,15 +73,18 @@ let grid = [
 ];
 
 let n = grid.length;
+// 1. Transpose in 3D
 for (let i = 0; i < n; i++) {
   for (let j = i + 1; j < n; j++) {
+    matrix.swap([i, j], [j, i]);
     let temp = grid[i][j];
     grid[i][j] = grid[j][i];
     grid[j][i] = temp;
-    console.log(\`Transposed [\${i}][\${j}] with [\${j}][\${i}]\`);
   }
 }
+// 2. Reverse Rows in 3D
 for (let i = 0; i < n; i++) {
+  matrix.reverseRow(i);
   grid[i].reverse();
 }`,
   },
@@ -115,7 +118,7 @@ while (left <= right) {
   let mid = Math.floor((left + right) / 2);
   array.compare(mid, mid);
   if (arr[mid] === target) {
-    console.log("Found at index:", mid);
+    console.log("Found target at index:", mid);
     break;
   } else if (arr[mid] < target) {
     left = mid + 1;
@@ -139,17 +142,17 @@ tree.search(37);`,
     name: "Graph Routing (BFS)",
     realm: "graph",
     code: `// Graph Network & BFS Traversal
-graph.addVertex(0);
-graph.addVertex(1);
-graph.addVertex(2);
-graph.addVertex(3);
+graph.addVertex("A");
+graph.addVertex("B");
+graph.addVertex("C");
+graph.addVertex("D");
 
-graph.addEdge(0, 1);
-graph.addEdge(0, 2);
-graph.addEdge(1, 3);
-graph.addEdge(2, 3);
+graph.addEdge("A", "B");
+graph.addEdge("A", "C");
+graph.addEdge("B", "D");
+graph.addEdge("C", "D");
 
-graph.bfs(0);`,
+graph.bfs("A");`,
   },
   {
     name: "Stack Tower (LIFO)",
@@ -203,14 +206,14 @@ const REALM_CONFIG = {
 
 export default function CodeStudio() {
   const [activeRealm, setActiveRealm] = useState("matrix");
-  const [code, setCode] = useState("");
+  const [code, setCode] = useState(QUICK_TEMPLATES[0].code);
 
   const [selectedSpeed, setSelectedSpeed] = useState("normal");
   const [activeStepIndex, setActiveStepIndex] = useState(-1);
   const [actionQueue, setActionQueue] = useState([]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
-  const [statusLog, setStatusLog] = useState("Ready. Type any DSA code & press Cmd+Enter to visualize in 3D.");
+  const [statusLog, setStatusLog] = useState("Ready. Click Run 3D or press Cmd+Enter to execute step-by-step.");
   const [highlightedLine, setHighlightedLine] = useState(null);
   const [activeTab, setActiveTab] = useState("console");
   const [liveScope, setLiveScope] = useState({});
@@ -276,6 +279,7 @@ export default function CodeStudio() {
         } else if (action.type === "matrix_set" && action.cell) {
           const [r, c] = action.cell;
           const val = action.arg;
+          setActiveCell([r, c]);
           setMatrixData((prev) => {
             const next = prev.map((row) => [...row]);
             if (next[r] && next[r][c] !== undefined) {
@@ -288,7 +292,25 @@ export default function CodeStudio() {
           const [c1, c2] = action.arg;
           setSwappingCells([c1, c2]);
           soundFX.playPush();
+          setMatrixData((prev) => {
+            const next = prev.map((row) => [...row]);
+            const [r1, col1] = c1;
+            const [r2, col2] = c2;
+            if (next[r1] && next[r2]) {
+              const temp = next[r1][col1];
+              next[r1][col1] = next[r2][col2];
+              next[r2][col2] = temp;
+            }
+            return next;
+          });
           setTimeout(() => setSwappingCells([]), 600);
+        } else if (action.type === "matrix_reverse_row") {
+          const rowIdx = action.arg !== undefined ? action.arg : 0;
+          setMatrixData((prev) => {
+            const next = prev.map((row, idx) => (idx === rowIdx ? [...row].reverse() : [...row]));
+            return next;
+          });
+          soundFX.playPush();
         } else if (action.type === "reverse") {
           setMatrixData((prev) => prev.map((row) => [...row].reverse()));
           soundFX.playPush();
@@ -360,7 +382,7 @@ export default function CodeStudio() {
           setQueueData([]);
         }
       }
-      // 5. Tree
+      // 5. Tree (BST)
       else if (target === "tree") {
         if (action.type === "insert") {
           const val = Number(action.arg);
@@ -370,14 +392,12 @@ export default function CodeStudio() {
             const next = [...prev];
             let idx = 0;
             while (idx <= 30) {
-              if (next[idx] === val) return prev;
-              const nextIdx = val < next[idx] ? idx * 2 + 1 : idx * 2 + 2;
-              if (nextIdx > 30) break;
-              if (next[nextIdx] === undefined) {
-                next[nextIdx] = val;
+              if (next[idx] === undefined || next[idx] === null) {
+                next[idx] = val;
                 break;
               }
-              idx = nextIdx;
+              if (next[idx] === val) return prev;
+              idx = val < next[idx] ? idx * 2 + 1 : idx * 2 + 2;
             }
             return next;
           });
@@ -394,15 +414,15 @@ export default function CodeStudio() {
       // 6. Graph
       else if (target === "graph") {
         if (action.type === "addVertex") {
-          const v = Number(action.arg);
+          const v = action.arg;
           soundFX.playPush();
           setGraphNodes((prev) => (prev.includes(v) ? prev : [...prev, v]));
         } else if (action.type === "addEdge") {
           const [u, v] = action.arg;
           soundFX.playPush();
-          setGraphEdges((prev) => [...prev, [Number(u), Number(v)]]);
+          setGraphEdges((prev) => [...prev, [u, v]]);
         } else if (action.type === "bfs" || action.type === "dfs") {
-          const start = Number(action.arg);
+          const start = action.arg;
           soundFX.playTreeStep(0);
           setGraphHighlight(start);
           setTimeout(() => setGraphHighlight(null), 1200);
@@ -417,10 +437,45 @@ export default function CodeStudio() {
         if (action.type === "insert") {
           const val = Number(action.arg);
           soundFX.playPush();
-          setHeapData((prev) => [...prev, val]);
+          setHeapData((prev) => {
+            const next = [...prev, val];
+            // Sift-up for Min-Heap invariant
+            let i = next.length - 1;
+            while (i > 0) {
+              let parent = Math.floor((i - 1) / 2);
+              if (next[i] < next[parent]) {
+                [next[i], next[parent]] = [next[parent], next[i]];
+                i = parent;
+              } else {
+                break;
+              }
+            }
+            return next;
+          });
         } else if (action.type === "extractRoot") {
           soundFX.playPop();
-          setHeapData((prev) => (prev.length > 0 ? prev.slice(1) : []));
+          setHeapData((prev) => {
+            if (prev.length <= 1) return [];
+            const next = [...prev];
+            next[0] = next.pop();
+            // Sift-down for Min-Heap invariant
+            let i = 0;
+            while (i * 2 + 1 < next.length) {
+              let left = i * 2 + 1;
+              let right = i * 2 + 2;
+              let smallest = left;
+              if (right < next.length && next[right] < next[left]) {
+                smallest = right;
+              }
+              if (next[smallest] < next[i]) {
+                [next[i], next[smallest]] = [next[smallest], next[i]];
+                i = smallest;
+              } else {
+                break;
+              }
+            }
+            return next;
+          });
         } else if (action.type === "clear") {
           soundFX.playClear();
           setHeapData([]);
@@ -439,7 +494,7 @@ export default function CodeStudio() {
     setHighlightedLine(null);
     setErrorMessage(null);
     setLiveScope({});
-    setStatusLog("3D scene reset. Ready to execute.");
+    setStatusLog("3D scene reset to starting state. Ready to execute.");
 
     setMatrixData([
       [1, 2, 3],
@@ -518,7 +573,7 @@ export default function CodeStudio() {
     return parsed.actions;
   };
 
-  // Run in 3D
+  // Run in 3D from the start
   const handleRunAll = async (customCode = code, customRealm = activeRealm) => {
     let queueList = actionQueue;
     const isFromStart = activeStepIndex === -1 || activeStepIndex >= queueList.length - 1;
@@ -529,7 +584,7 @@ export default function CodeStudio() {
       if (!queueList || queueList.length === 0) return;
       setActiveStepIndex(-1);
       stepIndexRef.current = -1;
-      await new Promise((r) => setTimeout(r, 60));
+      await new Promise((r) => setTimeout(r, 80));
     }
 
     setIsPlaying(true);
@@ -601,12 +656,47 @@ export default function CodeStudio() {
     }
   };
 
-  // Quick insert template
+  // Quick insert template with clean starting 3D initialization
   const handleInsertTemplate = (tmpl) => {
+    handleReset();
     setActiveRealm(tmpl.realm);
     setCode(tmpl.code);
-    handleReset();
+
+    // Initialize 3D starting state per template
+    if (tmpl.realm === "matrix") {
+      setMatrixData([
+        [1, 2, 3],
+        [4, 5, 6],
+        [7, 8, 9],
+      ]);
+      setActiveCell(null);
+      setVisitedCells([]);
+      setSwappingCells([]);
+    } else if (tmpl.realm === "sorting") {
+      if (tmpl.name === "Binary Search") {
+        setArrayData([10, 20, 30, 40, 50, 60, 70]);
+      } else {
+        setArrayData([60, 20, 80, 10, 40]);
+      }
+      setComparingIndices([]);
+      setSwappingIndices([]);
+    } else if (tmpl.realm === "tree") {
+      setTreeData([]);
+      setTreeHighlight(null);
+    } else if (tmpl.realm === "graph") {
+      setGraphNodes([]);
+      setGraphEdges([]);
+      setGraphHighlight(null);
+    } else if (tmpl.realm === "stack") {
+      setStackData([]);
+    } else if (tmpl.realm === "queue") {
+      setQueueData([]);
+    } else if (tmpl.realm === "heap") {
+      setHeapData([]);
+    }
+
     soundFX.playTreeFound();
+    setStatusLog(`Loaded template: ${tmpl.name}. Click 'Run 3D' to animate from the start.`);
   };
 
   const lines = (code || "").split("\n");
@@ -1184,30 +1274,30 @@ export default function CodeStudio() {
         {activeRealm === "queue" && (
           <QueueWorld
             queue={queueData}
-            isPeekingQueue={false}
+            isPeeking={false}
           />
         )}
 
         {activeRealm === "tree" && (
           <TreeWorld
-            treeNodes={treeData}
-            searchHighlight={treeHighlight}
-            highlightNode={treeHighlight}
+            nodes={treeData}
+            highlightedNode={treeHighlight}
           />
         )}
 
         {activeRealm === "graph" && (
           <GraphWorld
-            graphNodes={graphNodes}
-            graphEdges={graphEdges}
-            searchHighlight={graphHighlight}
+            nodes={graphNodes}
+            edges={graphEdges}
+            highlightedNode={graphHighlight}
           />
         )}
 
         {activeRealm === "heap" && (
           <HeapWorld
-            heapArray={heapData}
+            heap={heapData}
             heapType="min"
+            highlightedIndex={null}
           />
         )}
 
