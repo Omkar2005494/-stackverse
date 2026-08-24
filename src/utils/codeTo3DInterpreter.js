@@ -1,18 +1,5 @@
 /**
  * Universal Multi-Language Code-to-3D Interpreter & Hardened DSA Execution Engine.
- * 
- * Supports Core Idiomatic Code in:
- * 1. JavaScript / TypeScript
- * 2. Python (def, range(), len(), print(), indentation/blocks, list swapping)
- * 3. C++ (#include, vector, swap(), cout, main(), classes, structs)
- * 4. Java (public class, static void main, int[], System.out.println)
- * 5. C (#include <stdio.h>, int arr[], printf, pointers, main)
- * 
- * Security Features:
- * 1. Blacklists & shadows all dangerous browser globals (window, document, fetch, localStorage, etc.)
- * 2. Automatic Infinite Loop Guards (__loopGuard injection) to prevent browser thread freeze.
- * 3. Execution time limits & Maximum 3D Action Memory Caps.
- * 4. Safe Proxy Instrumentation for real-time 3D algorithm tracing.
  */
 
 // Detect language from source code
@@ -20,7 +7,7 @@ export function detectLanguageFromCode(code) {
   if (!code || typeof code !== "string") return "javascript";
   const lower = code.toLowerCase();
 
-  if (code.includes("#include") && (lower.includes("iostream") || lower.includes("vector") || lower.includes("using namespace std") || lower.includes("stack") || lower.includes("queue"))) {
+  if (code.includes("#include") && (lower.includes("iostream") || lower.includes("vector") || lower.includes("using namespace std") || lower.includes("stack") || lower.includes("queue") || lower.includes("algorithm"))) {
     return "cpp";
   }
   if (code.includes("#include") && lower.includes("stdio.h")) {
@@ -52,7 +39,7 @@ export function detectRealmFromCode(code) {
     lower.includes("top <=") ||
     lower.includes("bottom >=") ||
     /\[\s*\[\s*\d+/.test(code) ||
-    /\{\s*\{\s*\d+/.test(code) || // C++ / Java / C {{1, 2}, {3, 4}}
+    /\{\s*\{\s*\d+/.test(code) ||
     /\[\s*[a-zA-Z_$][a-zA-Z0-9_$]*\s*\]\s*\[\s*[a-zA-Z_$][a-zA-Z0-9_$]*\s*\]/.test(code)
   ) {
     return "matrix";
@@ -150,10 +137,12 @@ export function detectRealmFromCode(code) {
 }
 
 // Convert Python indentation-based code to JavaScript blocks
-function pythonToJavaScript(pyCode) {
+export function pythonToJavaScript(pyCode) {
   const lines = pyCode.split("\n");
   const jsLines = [];
   const indentStack = [0];
+  const declaredVars = new Set();
+  let bracketDepth = 0;
 
   for (let rawLine of lines) {
     // Preserve line comments
@@ -169,30 +158,107 @@ function pythonToJavaScript(pyCode) {
     const indent = rawLine.search(/\S/);
     let line = rawLine.trim();
 
-    // Close blocks when unindenting
-    while (indentStack.length > 1 && indent < indentStack[indentStack.length - 1]) {
-      indentStack.pop();
-      jsLines.push(" ".repeat(indentStack[indentStack.length - 1]) + "}");
+    // Check if elif or else
+    const isElifOrElse = /^(?:elif\b|else\s*:)/.test(line);
+
+    if (isElifOrElse) {
+      // Unindent back to parent if level without emitting duplicate closing braces
+      while (indentStack.length > 1 && indent < indentStack[indentStack.length - 1] - 4) {
+        indentStack.pop();
+        jsLines.push(" ".repeat(indentStack[indentStack.length - 1]) + "}");
+      }
+    } else {
+      // Close blocks when unindenting
+      while (indentStack.length > 1 && indent < indentStack[indentStack.length - 1]) {
+        indentStack.pop();
+        jsLines.push(" ".repeat(indentStack[indentStack.length - 1]) + "}");
+      }
     }
 
-    // Python -> JS syntax transformations
-    // 1. Array/Tuple swap: a, b = b, a or arr[i], arr[j] = arr[j], arr[i]
-    const swapMatch = line.match(/^([a-zA-Z0-9_\[\]]+)\s*,\s*([a-zA-Z0-9_\[\]]+)\s*=\s*([a-zA-Z0-9_\[\]]+)\s*,\s*([a-zA-Z0-9_\[\]]+)$/);
-    if (swapMatch) {
-      line = `[${swapMatch[1]}, ${swapMatch[2]}] = [${swapMatch[3]}, ${swapMatch[4]}];`;
+    // 0. Python f-strings: f"Visited [{top}][{c}]" -> `Visited [${top}][${c}]`
+    line = line.replace(/f"([^"]*)"/g, (m, content) => {
+      const templated = content.replace(/\{([^}]+)\}/g, "${$1}");
+      return `\`${templated}\``;
+    });
+    line = line.replace(/f'([^']*)'/g, (m, content) => {
+      const templated = content.replace(/\{([^}]+)\}/g, "${$1}");
+      return `\`${templated}\``;
+    });
+
+    // 1. Python Tuple Swaps: a, b = b, a or arr[i], arr[j] = arr[j], arr[i]
+    const tupleSwap = line.match(/^([a-zA-Z0-9_\[\]+-\s]+),\s*([a-zA-Z0-9_\[\]+-\s]+)\s*=\s*([a-zA-Z0-9_\[\]+-\s]+),\s*([a-zA-Z0-9_\[\]+-\s]+)$/);
+    if (tupleSwap) {
+      const left1 = tupleSwap[1].trim();
+      const left2 = tupleSwap[2].trim();
+      const right1 = tupleSwap[3].trim();
+      const right2 = tupleSwap[4].trim();
+
+      const arrIdx1 = left1.match(/^arr\[([^\]]+)\]$/);
+      const arrIdx2 = left2.match(/^arr\[([^\]]+)\]$/);
+      const matIdx1 = left1.match(/^grid\[([^\]]+)\]\[([^\]]+)\]$/);
+      const matIdx2 = left2.match(/^grid\[([^\]]+)\]\[([^\]]+)\]$/);
+
+      if (arrIdx1 && arrIdx2) {
+        line = `array.swap(${arrIdx1[1]}, ${arrIdx2[1]}); [${left1}, ${left2}] = [${right1}, ${right2}];`;
+      } else if (matIdx1 && matIdx2) {
+        line = `matrix.swap([${matIdx1[1]}, ${matIdx1[2]}], [${matIdx2[1]}, ${matIdx2[2]}]); [${left1}, ${left2}] = [${right1}, ${right2}];`;
+      } else {
+        line = `[${left1}, ${left2}] = [${right1}, ${right2}];`;
+      }
+    } else {
+      // Multiple assignment: a, b = 0, n - 1
+      const multiAssign = line.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*,\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*([^,]+),\s*(.+)$/);
+      if (multiAssign) {
+        const v1 = multiAssign[1];
+        const v2 = multiAssign[2];
+        const val1 = multiAssign[3].trim();
+        const val2 = multiAssign[4].trim();
+        const prefix = (!declaredVars.has(v1) || !declaredVars.has(v2)) ? "let " : "";
+        declaredVars.add(v1);
+        declaredVars.add(v2);
+        line = `${prefix}[${v1}, ${v2}] = [${val1}, ${val2}];`;
+      } else {
+        // Single variable assignment: var = expr
+        const singleAssign = line.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+)$/);
+        if (singleAssign && !line.startsWith("==") && !declaredVars.has(singleAssign[1])) {
+          const varName = singleAssign[1];
+          declaredVars.add(varName);
+          line = `let ${varName} = ${singleAssign[2]}`;
+        }
+      }
     }
 
-    // 2. Range loops
-    line = line.replace(/for\s+([a-zA-Z_][a-zA-Z0-9_]*)\s+in\s+range\(([^,]+),\s*([^,]+),\s*([^)]+)\)\s*:/g, "for (let $1 = $2; $1 < $3; $1 += $4) {");
-    line = line.replace(/for\s+([a-zA-Z_][a-zA-Z0-9_]*)\s+in\s+range\(([^,]+),\s*([^)]+)\)\s*:/g, "for (let $1 = $2; $1 < $3; $1++) {");
-    line = line.replace(/for\s+([a-zA-Z_][a-zA-Z0-9_]*)\s+in\s+range\(([^)]+)\)\s*:/g, "for (let $1 = 0; $1 < $2; $1++) {");
-    line = line.replace(/for\s+([a-zA-Z_][a-zA-Z0-9_]*)\s+in\s+([^:]+):/g, "for (let $1 of $2) {");
+    // 2. Range loops: 3-argument range(start, stop, step)
+    line = line.replace(/for\s+([a-zA-Z_][a-zA-Z0-9_]*)\s+in\s+range\(([^,]+),\s*([^,]+),\s*(-1|-?\d+)\)\s*:/g, (m, v, start, stop, step) => {
+      const s = Number(step);
+      declaredVars.add(v);
+      if (s < 0) return `for (let ${v} = ${start}; ${v} > ${stop}; ${v} += ${step}) {`;
+      return `for (let ${v} = ${start}; ${v} < ${stop}; ${v} += ${step}) {`;
+    });
 
-    // 3. Conditionals & while
+    // 2-argument range(start, stop)
+    line = line.replace(/for\s+([a-zA-Z_][a-zA-Z0-9_]*)\s+in\s+range\(([^,]+),\s*([^)]+)\)\s*:/g, (m, v, start, stop) => {
+      declaredVars.add(v);
+      return `for (let ${v} = ${start}; ${v} < ${stop}; ${v}++) {`;
+    });
+
+    // 1-argument range(stop)
+    line = line.replace(/for\s+([a-zA-Z_][a-zA-Z0-9_]*)\s+in\s+range\(([^)]+)\)\s*:/g, (m, v, stop) => {
+      declaredVars.add(v);
+      return `for (let ${v} = 0; ${v} < ${stop}; ${v}++) {`;
+    });
+
+    // for item in iterable
+    line = line.replace(/for\s+([a-zA-Z_][a-zA-Z0-9_]*)\s+in\s+([^:]+):/g, (m, v, iter) => {
+      declaredVars.add(v);
+      return `for (let ${v} of ${iter}) {`;
+    });
+
+    // 3. Conditionals & while (replace elif BEFORE if, using word boundary \bif)
     line = line.replace(/while\s+(.+)\s*:/g, "while ($1) {");
-    line = line.replace(/if\s+(.+)\s*:/g, "if ($1) {");
-    line = line.replace(/elif\s+(.+)\s*:/g, "} else if ($1) {");
-    line = line.replace(/else\s*:/g, "} else {");
+    line = line.replace(/\belif\s+(.+)\s*:/g, "} else if ($1) {");
+    line = line.replace(/\bif\s+(.+)\s*:/g, "if ($1) {");
+    line = line.replace(/\belse\s*:/g, "} else {");
 
     // 4. Function & Class definitions
     line = line.replace(/def\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(([^)]*)\)\s*(?:->\s*[^:]+)?\s*:/g, (m, fnName, args) => {
@@ -212,6 +278,7 @@ function pythonToJavaScript(pyCode) {
     line = line.replace(/\band\b/g, "&&");
     line = line.replace(/\bor\b/g, "||");
     line = line.replace(/\bnot\b/g, "!");
+    line = line.replace(/\/\//g, "/");
 
     // Helper method translations
     line = line.replace(/graph\.add_vertex\(/g, "graph.addVertex(");
@@ -219,10 +286,25 @@ function pythonToJavaScript(pyCode) {
     line = line.replace(/heap\.extract_root\(/g, "heap.extractRoot(");
     line = line.replace(/list\.insert_head\(/g, "list.insertHead(");
 
-    // Check if block was opened
+    // Track bracket depth for multi-line lists/dicts
+    const opens = (line.match(/[\[\(\{]/g) || []).length;
+    const closes = (line.match(/[\]\)\}]/g) || []).length;
+    bracketDepth += opens - closes;
+
+    // Check if block was opened or line needs semicolon
     if (rawLine.trim().endsWith(":")) {
-      indentStack.push(indent + 4);
-    } else if (!line.endsWith(";") && !line.endsWith("{") && !line.endsWith("}")) {
+      if (!isElifOrElse) {
+        indentStack.push(indent + 4);
+      }
+    } else if (
+      bracketDepth <= 0 &&
+      !line.endsWith(";") &&
+      !line.endsWith("{") &&
+      !line.endsWith("}") &&
+      !line.endsWith("[") &&
+      !line.endsWith(",") &&
+      !line.endsWith("(")
+    ) {
       line += ";";
     }
 
@@ -239,7 +321,7 @@ function pythonToJavaScript(pyCode) {
 }
 
 // Convert C++ / C / Java code to executable JavaScript
-function cppJavaToJavaScript(code) {
+export function cppJavaToJavaScript(code) {
   let js = code;
 
   // 1. Remove preprocessor & package headers
@@ -249,14 +331,33 @@ function cppJavaToJavaScript(code) {
   js = js.replace(/package\s+[a-zA-Z0-9_.]+;/g, "");
   js = js.replace(/import\s+[a-zA-Z0-9_.*]+;/g, "");
 
-  // 2. Remove Java class wrapping: public class Solution / Main { ... }
-  js = js.replace(/public\s+class\s+[a-zA-Z0-9_]+\s*\{/g, "");
-  js = js.replace(/public\s+static\s+void\s+main\s*\([^)]*\)\s*\{/g, "function __main__() {");
+  // 2. Remove Java class wrapping cleanly
+  if (/public\s+class\s+[a-zA-Z0-9_]+[\s\S]*?\{/.test(js)) {
+    js = js.replace(/public\s+class\s+[a-zA-Z0-9_]+\s*\{/, "");
+    const lastBrace = js.lastIndexOf("}");
+    if (lastBrace !== -1) {
+      js = js.substring(0, lastBrace) + js.substring(lastBrace + 1);
+    }
+  }
 
-  // 3. Convert C++ / C main(): int main(...) { -> function __main__() {
-  js = js.replace(/int\s+main\s*\([^)]*\)\s*\{/g, "function __main__() {");
+  // 3. Convert C++ / C / Java main():
+  js = js.replace(/(?:public\s+)?(?:static\s+)?(?:void|int)\s+main\s*\([^)]*\)\s*\{/g, "function __main__() {");
 
-  // 4. Convert std::cout / printf / System.out.println
+  // 4. Convert other functions (void bubbleSort, int binarySearch, etc.)
+  js = js.replace(/(?:public\s+)?(?:static\s+)?(?:private\s+)?(?:protected\s+)?\b(?:void|int|bool|double|float|vector<[^>]+>|int\[\]|int\[\]\[\]|char\*?)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(([^)]*)\)\s*\{/g, (m, fnName, args) => {
+    if (fnName === "if" || fnName === "for" || fnName === "while" || fnName === "switch") return m;
+    const cleanArgs = args.split(",").map((a) => {
+      const parts = a.trim().split(/\s+/);
+      return parts[parts.length - 1].replace(/[&*\[\]]/g, "");
+    }).filter(Boolean).join(", ");
+    return `function ${fnName}(${cleanArgs}) {`;
+  });
+
+  // 5. C sizeof: sizeof(arr) / sizeof(arr[0]) -> arr.length
+  js = js.replace(/sizeof\s*\(\s*([a-zA-Z0-9_]+)\s*\)\s*\/\s*sizeof\s*\(\s*[a-zA-Z0-9_]+\[\d*\]\s*\)/g, "$1.length");
+  js = js.replace(/sizeof\s*\([^)]*\)/g, "4");
+
+  // 6. Convert std::cout / printf / System.out.println
   js = js.replace(/cout\s*<<\s*([^;]+);/g, (m, expr) => {
     const parts = expr.split("<<").map((p) => p.trim()).filter((p) => p !== "endl" && p !== "'\\n'" && p !== '"\\n"');
     return `console.log(${parts.join(", ")});`;
@@ -269,32 +370,46 @@ function cppJavaToJavaScript(code) {
   js = js.replace(/System\.out\.println\s*\(([^;]*)\);/g, "console.log($1);");
   js = js.replace(/System\.out\.print\s*\(([^;]*)\);/g, "console.log($1);");
 
-  // 5. Convert 2D Matrix / Vector literals: {{1, 2}, {3, 4}} -> [[1, 2], [3, 4]]
+  // 7. Convert 2D Matrix / Vector literals: {{1, 2}, {3, 4}} -> [[1, 2], [3, 4]]
   js = js.replace(/=\s*\{\s*\{/g, "= [[");
   js = js.replace(/\}\s*,\s*\{/g, "], [");
   js = js.replace(/\}\s*\};/g, "]];");
 
-  // 6. Convert 1D array literals: {1, 2, 3, 4} -> [1, 2, 3, 4]
+  // 8. Convert 1D array literals: {1, 2, 3, 4} -> [1, 2, 3, 4]
   js = js.replace(/=\s*\{([^}]+)\};/g, "= [$1];");
 
-  // 7. Strip C++ / Java / C types in declarations
-  js = js.replace(/\b(?:vector<vector<[a-zA-Z0-9_]+>>|vector<[a-zA-Z0-9_]+>|stack<[a-zA-Z0-9_]+>|queue<[a-zA-Z0-9_]+>|int\[\]\[\]|int\[\]|int\s+[a-zA-Z0-9_]+\[\d*\]\[\d*\]|int\s+[a-zA-Z0-9_]+\[\d*\]|int|float|double|char|bool|auto|long|void|size_t)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=/g, "let $1 =");
+  // 9. Strip C++ / Java / C array declarations with brackets: e.g. int grid[3][3] = ... or int arr[] = ...
+  js = js.replace(/\b(?:int|float|double|char|bool|auto|long|void)\s+([a-zA-Z_][a-zA-Z0-9_]*)\[\d*\]\[\d*\]\s*=/g, "let $1 =");
+  js = js.replace(/\b(?:int|float|double|char|bool|auto|long|void)\s+([a-zA-Z_][a-zA-Z0-9_]*)\[\d*\]\s*=/g, "let $1 =");
+
+  // 10. Strip general C++ / Java / C types in declarations
+  js = js.replace(/\b(?:vector<vector<[a-zA-Z0-9_]+>>|vector<[a-zA-Z0-9_]+>|stack<[a-zA-Z0-9_]+>|queue<[a-zA-Z0-9_]+>|int\[\]\[\]|int\[\]|int|float|double|char|bool|auto|long|void|size_t)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=/g, "let $1 =");
   js = js.replace(/\b(?:vector<vector<[a-zA-Z0-9_]+>>|vector<[a-zA-Z0-9_]+>|stack<[a-zA-Z0-9_]+>|queue<[a-zA-Z0-9_]+>|int\[\]\[\]|int\[\]|int|float|double|char|bool|auto|long|void|size_t)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*;/g, "let $1;");
 
-  // 8. Convert Java for-each loop: for (int val : values) -> for (let val of values)
+  // 11. Convert Java for-each loop: for (int val : values) -> for (let val of values)
   js = js.replace(/for\s*\(\s*(?:int|float|double|String|auto|var)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*:\s*([^)]+)\)/g, "for (let $1 of $2)");
 
-  // 9. Convert C++ swap(a, b) or swap(arr[i], arr[j])
+  // 12. Convert C++ swap(a, b) or swap(arr[i], arr[j])
   js = js.replace(/\bswap\s*\(\s*([a-zA-Z0-9_\[\]]+)\s*,\s*([a-zA-Z0-9_\[\]]+)\s*\);/g, (m, a, b) => {
+    const arrIdx1 = a.match(/^arr\[([^\]]+)\]$/);
+    const arrIdx2 = b.match(/^arr\[([^\]]+)\]$/);
+    const matIdx1 = a.match(/^grid\[([^\]]+)\]\[([^\]]+)\]$/);
+    const matIdx2 = b.match(/^grid\[([^\]]+)\]\[([^\]]+)\]$/);
+
+    if (arrIdx1 && arrIdx2) {
+      return `array.swap(${arrIdx1[1]}, ${arrIdx2[1]}); [${a}, ${b}] = [${b}, ${a}];`;
+    } else if (matIdx1 && matIdx2) {
+      return `matrix.swap([${matIdx1[1]}, ${matIdx1[2]}], [${matIdx2[1]}, ${matIdx2[2]}]); [${a}, ${b}] = [${b}, ${a}];`;
+    }
     return `[${a}, ${b}] = [${b}, ${a}];`;
   });
 
-  // 10. Methods: .size() -> .length, push_back() -> push(), reverse(...)
+  // 13. Methods: .size() -> .length, push_back() -> push(), reverse(...)
   js = js.replace(/\.size\(\)/g, ".length");
   js = js.replace(/\.push_back\(/g, ".push(");
   js = js.replace(/reverse\s*\(\s*([a-zA-Z0-9_\[\]]+)\.begin\(\)\s*,\s*[a-zA-Z0-9_\[\]]+\.end\(\)\s*\);/g, "$1.reverse();");
 
-  // 11. Auto-invoke __main__() if defined
+  // 14. Auto-invoke __main__() if defined
   if (js.includes("function __main__()")) {
     js += "\n__main__();\n";
   }
@@ -389,10 +504,10 @@ export function parseCodeTo3DActions(code, realm = "sorting", language = "auto")
   if (activeRealm === "grid") activeRealm = "matrix";
 
   // Transpile to executable JS if Python, C++, Java, or C
-  const executableJS = transpileToExecutableJS(code, language);
+  let executableJS = transpileToExecutableJS(code, language);
 
-  // 1. Detect 2D Matrix Literal (e.g. let grid = [[1, 2, 3], [4, 5, 6], [7, 8, 9]];)
-  const matrixMatch = executableJS.match(/(?:let|const|var)\s+(?:grid|matrix|board|table)\s*=\s*(\[\s*\[[\s\S]*?\]\s*\])/);
+  // 1. Detect 2D Matrix Literal (e.g. grid = [[1, 2, 3], ...];)
+  const matrixMatch = executableJS.match(/(?:let|const|var)?\s*(?:grid|matrix|board|table)\s*=\s*(\[\s*\[[\s\S]*?\]\s*\])/);
   if (matrixMatch) {
     try {
       const sanitized = matrixMatch[1].replace(/\/\/.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "");
@@ -406,9 +521,9 @@ export function parseCodeTo3DActions(code, realm = "sorting", language = "auto")
     }
   }
 
-  // 2. Detect 1D Array Literal (e.g. let arr = [60, 20, 80, 10, 40];)
+  // 2. Detect 1D Array Literal (e.g. arr = [60, 20, 80, 10, 40];)
   if (!initialMatrix) {
-    const initialArrMatch = executableJS.match(/(?:let|const|var)\s+(?:arr|array|nums|data|values)\s*=\s*\[([^\]]+)\]/);
+    const initialArrMatch = executableJS.match(/(?:let|const|var)?\s*(?:arr|array|nums|data|values)\s*=\s*\[([^\]]+)\]/);
     if (initialArrMatch) {
       try {
         const parsedElements = initialArrMatch[1]
@@ -422,6 +537,14 @@ export function parseCodeTo3DActions(code, realm = "sorting", language = "auto")
         // Ignore
       }
     }
+  }
+
+  // Replace variable redeclarations with proxy-assign so proxy intercepts operations
+  if (initialMatrix) {
+    executableJS = executableJS.replace(/(?:let|const|var)\s+(grid|matrix|board|table)\s*=\s*(\[\s*\[[\s\S]*?\]\s*\]);?/g, "$1 = __createMatrix($2);");
+  }
+  if (initialArray) {
+    executableJS = executableJS.replace(/(?:let|const|var)\s+(arr|array|nums|data|values)\s*=\s*(\[[^\]]+\]);?/g, "$1 = __createArray($2);");
   }
 
   // --- INSTRUMENTED PROXY DSA RUNTIME ---
@@ -801,14 +924,25 @@ export function parseCodeTo3DActions(code, realm = "sorting", language = "auto")
       });
     },
 
-    // Console output interceptor (also detects matrix visited coordinates!)
+    // Console output interceptor (detects matrix visited coordinates)
     console: {
       log(...args) {
-        const msg = args.map((a) => (typeof a === "object" ? JSON.stringify(a) : String(a))).join(" ");
+        let msg = "";
+        if (typeof args[0] === "string" && (args[0].includes("%d") || args[0].includes("%s") || args[0].includes("%f"))) {
+          let str = args[0];
+          let argIdx = 1;
+          msg = str.replace(/%[dsf]/g, () => (args[argIdx++] !== undefined ? args[argIdx - 1] : ""));
+          if (argIdx < args.length) {
+            msg += " " + args.slice(argIdx).join(" ");
+          }
+        } else {
+          msg = args.map((a) => (typeof a === "object" ? JSON.stringify(a) : String(a))).join(" ");
+        }
+
         logs.push(msg);
 
-        // Pattern matching for Matrix coordinate logs: e.g. [0][0] or [0, 1]
-        const coordMatch = msg.match(/\[(\d+)\]\s*\[(\d+)\]|\[(\d+)\s*,\s*(\d+)\]/);
+        // Pattern matching for Matrix coordinate logs: e.g. [0][0] or [0, 1] with any spacing
+        const coordMatch = msg.match(/\[\s*(\d+)\s*\]\s*\[\s*(\d+)\s*\]|\[\s*(\d+)\s*,\s*(\d+)\s*\]/);
         if (coordMatch) {
           const r = Number(coordMatch[1] !== undefined ? coordMatch[1] : coordMatch[3]);
           const c = Number(coordMatch[2] !== undefined ? coordMatch[2] : coordMatch[4]);
@@ -835,9 +969,29 @@ export function parseCodeTo3DActions(code, realm = "sorting", language = "auto")
   function createInstrumentedArray(initial = [], is2D = false, rowIndex = null) {
     const rawArr = [...initial];
 
-    return new Proxy(rawArr, {
+    const proxy = new Proxy(rawArr, {
       get(target, prop, receiver) {
-        // Intercept array methods
+        // Intercept helper methods
+        if (prop === "swap") {
+          return function (c1, c2) {
+            recordAction({
+              type: "matrix_swap",
+              target: "matrix",
+              arg: [c1, c2],
+              raw: `matrix.swap([${c1}], [${c2}])`,
+            });
+          };
+        }
+        if (prop === "reverseRow") {
+          return function (r = 0) {
+            recordAction({
+              type: "matrix_reverse_row",
+              target: "matrix",
+              arg: Number(r),
+              raw: `matrix.reverseRow(${r})`,
+            });
+          };
+        }
         if (prop === "push") {
           return function (...vals) {
             for (const v of vals) {
@@ -896,7 +1050,7 @@ export function parseCodeTo3DActions(code, realm = "sorting", language = "auto")
               raw: `matrix[${rowIndex}][${idx}] = ${target[idx]}`,
             });
           } else if (activeRealm === "sorting" && idx < target.length) {
-            // 1D array read
+            // 1D array read / comparison
             recordAction({
               type: "compare",
               target: "sorting",
@@ -935,11 +1089,37 @@ export function parseCodeTo3DActions(code, realm = "sorting", language = "auto")
         return Reflect.set(target, prop, value, receiver);
       },
     });
+
+    return proxy;
   }
+
+  function createMatrixProxy(mat) {
+    const matProxy = mat.map((row, r) => createInstrumentedArray(row, true, r));
+    matProxy.swap = function (c1, c2) {
+      recordAction({
+        type: "matrix_swap",
+        target: "matrix",
+        arg: [c1, c2],
+        raw: `matrix.swap([${c1}], [${c2}])`,
+      });
+    };
+    matProxy.reverseRow = function (r = 0) {
+      recordAction({
+        type: "matrix_reverse_row",
+        target: "matrix",
+        arg: Number(r),
+        raw: `matrix.reverseRow(${r})`,
+      });
+    };
+    return matProxy;
+  }
+
+  runtimeEnv.__createMatrix = (mat) => createMatrixProxy(mat);
+  runtimeEnv.__createArray = (arr) => createInstrumentedArray(arr, false);
 
   // Pre-populate environment with instrumented variables
   if (initialMatrix) {
-    runtimeEnv.grid = initialMatrix.map((row, r) => createInstrumentedArray(row, true, r));
+    runtimeEnv.grid = createMatrixProxy(initialMatrix);
     runtimeEnv.matrix = runtimeEnv.grid;
     runtimeEnv.board = runtimeEnv.grid;
   } else if (initialArray) {

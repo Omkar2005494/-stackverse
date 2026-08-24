@@ -1,6 +1,7 @@
 /**
  * Procedural Web Audio API Sound Synthesizer for Stackverse
  * 100% lightweight, 0ms latency, zero external mp3 files.
+ * Auto-unlocked on user interaction.
  */
 
 class SoundSynthesizer {
@@ -10,6 +11,7 @@ class SoundSynthesizer {
   }
 
   init() {
+    if (!this.enabled) return;
     if (!this.ctx && typeof window !== "undefined") {
       const AudioContext = window.AudioContext || window.webkitAudioContext;
       if (AudioContext) {
@@ -17,7 +19,7 @@ class SoundSynthesizer {
       }
     }
     if (this.ctx && this.ctx.state === "suspended") {
-      this.ctx.resume();
+      this.ctx.resume().catch(() => {});
     }
   }
 
@@ -99,23 +101,23 @@ class SoundSynthesizer {
       const gain2 = this.ctx.createGain();
 
       osc2.type = "triangle";
-      osc2.frequency.setValueAtTime(520, now + 0.03);
-      osc2.frequency.exponentialRampToValueAtTime(1040, now + 0.16);
+      osc2.frequency.setValueAtTime(1400, now);
+      osc2.frequency.exponentialRampToValueAtTime(320, now + 0.1);
 
-      gain2.gain.setValueAtTime(0.28, now + 0.03);
-      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+      gain2.gain.setValueAtTime(0.3, now);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
 
       osc2.connect(gain2);
       gain2.connect(this.ctx.destination);
 
-      osc2.start(now + 0.03);
-      osc2.stop(now + 0.18);
+      osc2.start(now);
+      osc2.stop(now + 0.12);
     } catch {
       // Audio autoplay policy fallback
     }
   }
 
-  // Peek sound: High-tech cyber harmonic laser arpeggio
+  // Peek sound: High-tech holographic energy scan ping
   playPeek() {
     if (!this.enabled) return;
     try {
@@ -123,105 +125,15 @@ class SoundSynthesizer {
       if (!this.ctx) return;
 
       const now = this.ctx.currentTime;
-      const freqs = [659.25, 830.61, 987.77, 1318.51]; // E-major arpeggio
-
-      freqs.forEach((freq, idx) => {
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        const start = now + idx * 0.035;
-
-        osc.type = "sine";
-        osc.frequency.setValueAtTime(freq, start);
-
-        gain.gain.setValueAtTime(0.25, start);
-        gain.gain.exponentialRampToValueAtTime(0.001, start + 0.16);
-
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-
-        osc.start(start);
-        osc.stop(start + 0.16);
-      });
-    } catch {
-      // Audio autoplay policy fallback
-    }
-  }
-
-  // Clear sound: Heavy sub-bass blast decay
-  playClear() {
-    if (!this.enabled) return;
-    try {
-      this.init();
-      if (!this.ctx) return;
-
-      const now = this.ctx.currentTime;
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-
-      osc.type = "sawtooth";
-      osc.frequency.setValueAtTime(110, now);
-      osc.frequency.exponentialRampToValueAtTime(24, now + 0.32);
-
-      gain.gain.setValueAtTime(0.5, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
-
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-
-      osc.start(now);
-      osc.stop(now + 0.35);
-    } catch {
-      // Audio autoplay policy fallback
-    }
-  }
-
-  // Warning/Error sound: Double buzz tone
-  playWarning() {
-    if (!this.enabled) return;
-    try {
-      this.init();
-      if (!this.ctx) return;
-
-      const now = this.ctx.currentTime;
-      [0, 0.08].forEach((offset) => {
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-
-        osc.type = "sawtooth";
-        osc.frequency.setValueAtTime(140, now + offset);
-
-        gain.gain.setValueAtTime(0.3, now + offset);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.06);
-
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-
-        osc.start(now + offset);
-        osc.stop(now + offset + 0.06);
-      });
-    } catch {
-      // Audio autoplay policy fallback
-    }
-  }
-
-  // Tree Traversal Node Step Chime (Harmonic Crystal Pentatonic Scale)
-  playTreeStep(stepIndex = 0) {
-    if (!this.enabled) return;
-    try {
-      this.init();
-      if (!this.ctx) return;
-
-      const now = this.ctx.currentTime;
-      const scale = [440, 493.88, 554.37, 659.25, 739.99, 880, 987.77, 1108.73];
-      const freq = scale[stepIndex % scale.length];
 
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
 
       osc.type = "sine";
-      osc.frequency.setValueAtTime(freq, now);
+      osc.frequency.setValueAtTime(580, now);
+      osc.frequency.exponentialRampToValueAtTime(1160, now + 0.14);
 
-      gain.gain.setValueAtTime(0.3, now);
+      gain.gain.setValueAtTime(0.4, now);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
 
       osc.connect(gain);
@@ -234,7 +146,95 @@ class SoundSynthesizer {
     }
   }
 
-  // Tree Search Node Found Chime (Success Double Bell)
+  // Clear sound: Cyber energy vortex purge
+  playClear() {
+    if (!this.enabled) return;
+    try {
+      this.init();
+      if (!this.ctx) return;
+
+      const now = this.ctx.currentTime;
+
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(380, now);
+      osc.frequency.exponentialRampToValueAtTime(45, now + 0.35);
+
+      gain.gain.setValueAtTime(0.5, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.38);
+    } catch {
+      // Audio autoplay policy fallback
+    }
+  }
+
+  // Warning sound: Deep cybernetic error buzz
+  playWarning() {
+    if (!this.enabled) return;
+    try {
+      this.init();
+      if (!this.ctx) return;
+
+      const now = this.ctx.currentTime;
+
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(120, now);
+      osc.frequency.setValueAtTime(90, now + 0.08);
+
+      gain.gain.setValueAtTime(0.4, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.22);
+    } catch {
+      // Audio autoplay policy fallback
+    }
+  }
+
+  // Tree Step sound: Musical melodic chime for traversal nodes
+  playTreeStep(index = 0) {
+    if (!this.enabled) return;
+    try {
+      this.init();
+      if (!this.ctx) return;
+
+      const now = this.ctx.currentTime;
+      const PENTATONIC_SCALE = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25];
+      const freq = PENTATONIC_SCALE[index % PENTATONIC_SCALE.length];
+
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(freq, now);
+
+      gain.gain.setValueAtTime(0.35, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.28);
+    } catch {
+      // Audio autoplay policy fallback
+    }
+  }
+
+  // Tree Found sound: Harmonious major chord fanfare
   playTreeFound() {
     if (!this.enabled) return;
     try {
@@ -242,10 +242,12 @@ class SoundSynthesizer {
       if (!this.ctx) return;
 
       const now = this.ctx.currentTime;
-      [880, 1320].forEach((freq, i) => {
+      const CHORD = [523.25, 659.25, 783.99, 1046.50];
+
+      CHORD.forEach((freq, i) => {
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
-        const start = now + i * 0.08;
+        const start = now + i * 0.05;
 
         osc.type = "triangle";
         osc.frequency.setValueAtTime(freq, start);
@@ -264,7 +266,7 @@ class SoundSynthesizer {
     }
   }
 
-  // Level Up: Epic Grand Fanfare (Sub-Bass Boom + Sparkling Harmonic Arpeggio)
+  // Level Up: Epic Grand Fanfare
   playLevelUp() {
     if (!this.enabled) return;
     try {
@@ -288,12 +290,12 @@ class SoundSynthesizer {
 
       // 2. Ascending Grand Arpeggio Chords
       const notes = [
-        { freq: 523.25, time: 0.00 }, // C5
-        { freq: 659.25, time: 0.08 }, // E5
-        { freq: 783.99, time: 0.16 }, // G5
-        { freq: 1046.50, time: 0.24 }, // C6
-        { freq: 1318.51, time: 0.34 }, // E6
-        { freq: 1567.98, time: 0.44 }, // G6 (sustained climax)
+        { freq: 523.25, time: 0.00 },
+        { freq: 659.25, time: 0.08 },
+        { freq: 783.99, time: 0.16 },
+        { freq: 1046.50, time: 0.24 },
+        { freq: 1318.51, time: 0.34 },
+        { freq: 1567.98, time: 0.44 },
       ];
 
       notes.forEach(({ freq, time }) => {
@@ -321,3 +323,16 @@ class SoundSynthesizer {
 }
 
 export const soundFX = new SoundSynthesizer();
+
+// Automatically unlock Web Audio API on first user interaction
+if (typeof window !== "undefined") {
+  const unlockAudio = () => {
+    soundFX.init();
+    window.removeEventListener("click", unlockAudio);
+    window.removeEventListener("keydown", unlockAudio);
+    window.removeEventListener("touchstart", unlockAudio);
+  };
+  window.addEventListener("click", unlockAudio, { once: true, passive: true });
+  window.addEventListener("keydown", unlockAudio, { once: true, passive: true });
+  window.addEventListener("touchstart", unlockAudio, { once: true, passive: true });
+}
