@@ -16,8 +16,6 @@ import {
   Trash2,
   Variable,
   Activity,
-  BookOpen,
-  Copy,
   Zap,
   LayoutGrid,
 } from "lucide-react";
@@ -50,28 +48,16 @@ let top = 0, bottom = grid.length - 1;
 let left = 0, right = grid[0].length - 1;
 
 while (top <= bottom && left <= right) {
-  // Top Row
-  for (let c = left; c <= right; c++) {
-    console.log(\`Visited [\${top}][\${c}]\`);
-  }
+  for (let c = left; c <= right; c++) console.log(\`Visited [\${top}][\${c}]\`);
   top++;
-  // Right Col
-  for (let r = top; r <= bottom; r++) {
-    console.log(\`Visited [\${r}][\${right}]\`);
-  }
+  for (let r = top; r <= bottom; r++) console.log(\`Visited [\${r}][\${right}]\`);
   right--;
-  // Bottom Row
   if (top <= bottom) {
-    for (let c = right; c >= left; c--) {
-      console.log(\`Visited [\${bottom}][\${c}]\`);
-    }
+    for (let c = right; c >= left; c--) console.log(\`Visited [\${bottom}][\${c}]\`);
     bottom--;
   }
-  // Left Col
   if (left <= right) {
-    for (let r = bottom; r >= top; r--) {
-      console.log(\`Visited [\${r}][\${left}]\`);
-    }
+    for (let r = bottom; r >= top; r--) console.log(\`Visited [\${r}][\${left}]\`);
     left++;
   }
 }`,
@@ -87,7 +73,6 @@ let grid = [
 ];
 
 let n = grid.length;
-// Step 1: Transpose
 for (let i = 0; i < n; i++) {
   for (let j = i + 1; j < n; j++) {
     let temp = grid[i][j];
@@ -96,7 +81,6 @@ for (let i = 0; i < n; i++) {
     console.log(\`Transposed [\${i}][\${j}] with [\${j}][\${i}]\`);
   }
 }
-// Step 2: Reverse Rows
 for (let i = 0; i < n; i++) {
   grid[i].reverse();
 }`,
@@ -199,122 +183,6 @@ heap.extractRoot();`,
   },
 ];
 
-// --- CURATED ALGORITHM EXAMPLES LIBRARY ---
-const ALGORITHM_LIBRARY = [
-  {
-    id: "ex-spiral-matrix",
-    category: "matrix",
-    title: "2D Spiral Matrix Traversal",
-    desc: "Traverses a 3D isometric 2D grid matrix layer by layer in clockwise spiral order.",
-    time: "O(M × N)",
-    space: "O(1)",
-    code: `// 🌀 2D Spiral Matrix Traversal
-let grid = [
-  [ 1,  2,  3 ],
-  [ 4,  5,  6 ],
-  [ 7,  8,  9 ]
-];
-
-let top = 0, bottom = grid.length - 1;
-let left = 0, right = grid[0].length - 1;
-
-while (top <= bottom && left <= right) {
-  for (let c = left; c <= right; c++) console.log(\`Visited [\${top}][\${c}]\`);
-  top++;
-  for (let r = top; r <= bottom; r++) console.log(\`Visited [\${r}][\${right}]\`);
-  right--;
-  if (top <= bottom) {
-    for (let c = right; c >= left; c--) console.log(\`Visited [\${bottom}][\${c}]\`);
-    bottom--;
-  }
-  if (left <= right) {
-    for (let r = bottom; r >= top; r--) console.log(\`Visited [\${r}][\${left}]\`);
-    left++;
-  }
-}`,
-  },
-  {
-    id: "ex-bubble-sort",
-    category: "sorting",
-    title: "Bubble Sort (Live 3D Swaps)",
-    desc: "Repeatedly steps through the array, comparing adjacent elements and swapping them if out of order.",
-    time: "O(n²)",
-    space: "O(1)",
-    code: `// Bubble Sort on 3D Array Pillars
-let arr = [60, 20, 80, 10, 40];
-for (let i = 0; i < arr.length; i++) {
-  for (let j = 0; j < arr.length - i - 1; j++) {
-    array.compare(j, j + 1);
-    if (arr[j] > arr[j + 1]) {
-      array.swap(j, j + 1);
-      let temp = arr[j];
-      arr[j] = arr[j + 1];
-      arr[j + 1] = temp;
-    }
-  }
-}`,
-  },
-  {
-    id: "ex-binary-search",
-    category: "sorting",
-    title: "Binary Search",
-    desc: "Fast O(log n) search on a sorted array by halving the search range at each step.",
-    time: "O(log n)",
-    space: "O(1)",
-    code: `// Binary Search on Sorted Array
-let arr = [10, 20, 30, 40, 50, 60, 70];
-array.compare(3, 3);
-array.compare(1, 1);
-array.compare(2, 2);`,
-  },
-  {
-    id: "ex-tree-bst",
-    category: "tree",
-    title: "BST Construction & Search",
-    desc: "Inserts nodes into a Binary Search Tree following BST properties and searches for target keys.",
-    time: "O(log n)",
-    space: "O(1)",
-    code: `// Binary Search Tree
-let keys = [50, 25, 75, 12, 37, 62, 87];
-for (let k of keys) {
-  tree.insert(k);
-}
-tree.search(37);`,
-  },
-  {
-    id: "ex-graph-bfs",
-    category: "graph",
-    title: "Graph Routing & BFS Traversal",
-    desc: "Builds an interconnected graph network and executes Breadth-First Search routing.",
-    time: "O(V + E)",
-    space: "O(V)",
-    code: `// Graph Routing & BFS
-graph.addVertex(0);
-graph.addVertex(1);
-graph.addVertex(2);
-graph.addVertex(3);
-graph.addEdge(0, 1);
-graph.addEdge(1, 2);
-graph.addEdge(0, 2);
-graph.addEdge(2, 3);
-graph.bfs(0);`,
-  },
-  {
-    id: "ex-heap-sift",
-    category: "heap",
-    title: "Min-Heap Sift-Up & Extract",
-    desc: "Inserts keys into a priority heap maintaining parent <= child invariant and extracts the minimum root.",
-    time: "O(log n)",
-    space: "O(1)",
-    code: `// Min-Heap Invariant
-heap.insert(40);
-heap.insert(20);
-heap.insert(60);
-heap.insert(10);
-heap.extractRoot();`,
-  },
-];
-
 const SPEEDS = {
   slow: { label: "0.5x", delayMs: 1100 },
   normal: { label: "1x", delayMs: 600 },
@@ -334,7 +202,6 @@ const REALM_CONFIG = {
 };
 
 export default function CodeStudio() {
-  const [viewMode, setViewMode] = useState("editor"); // "editor" | "library"
   const [activeRealm, setActiveRealm] = useState("matrix");
   const [code, setCode] = useState("");
 
@@ -780,485 +647,339 @@ export default function CodeStudio() {
             justifyContent: "space-between",
           }}
         >
-          {/* View Mode Toggle: Free Code vs Examples Library */}
+          {/* Header Title */}
           <div
             style={{
               display: "flex",
-              background: "rgba(0, 0, 0, 0.45)",
-              padding: "4px",
-              borderRadius: "10px",
-              border: "1px solid rgba(255, 255, 255, 0.08)",
-              gap: "4px",
+              alignItems: "center",
+              gap: "8px",
             }}
           >
-            <button
-              onClick={() => {
-                setViewMode("editor");
-                soundFX.playPeek();
-              }}
+            <div
               style={{
-                padding: "6px 14px",
+                width: "28px",
+                height: "28px",
                 borderRadius: "8px",
-                border: "none",
-                fontSize: "12px",
-                fontWeight: "800",
-                cursor: "pointer",
+                background: "linear-gradient(135deg, #0284c7 0%, #38bdf8 100%)",
                 display: "flex",
                 alignItems: "center",
-                gap: "6px",
-                background: viewMode === "editor" ? "linear-gradient(135deg, #0284c7 0%, #38bdf8 100%)" : "transparent",
-                color: viewMode === "editor" ? "#0f172a" : "#94a3b8",
-                boxShadow: viewMode === "editor" ? "0 0 14px rgba(56, 189, 248, 0.3)" : "none",
-                transition: "all 0.2s",
+                justifyContent: "center",
+                boxShadow: "0 0 14px rgba(56, 189, 248, 0.3)",
               }}
             >
-              <Code2 size={14} />
-              <span>Free Code Editor</span>
-            </button>
-
-            <button
-              onClick={() => {
-                setViewMode("library");
-                soundFX.playPeek();
-              }}
-              style={{
-                padding: "6px 14px",
-                borderRadius: "8px",
-                border: "none",
-                fontSize: "12px",
-                fontWeight: "800",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                background: viewMode === "library" ? "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)" : "transparent",
-                color: viewMode === "library" ? "#ffffff" : "#94a3b8",
-                boxShadow: viewMode === "library" ? "0 0 14px rgba(168, 85, 247, 0.3)" : "none",
-                transition: "all 0.2s",
-              }}
-            >
-              <BookOpen size={14} />
-              <span>Examples Library</span>
-            </button>
+              <Code2 size={16} color="#020817" />
+            </div>
+            <div>
+              <span style={{ color: "#ffffff", fontWeight: "900", fontSize: "14px", letterSpacing: "0.5px" }}>
+                Free Code Editor
+              </span>
+              <span style={{ display: "block", color: "#38bdf8", fontSize: "10.5px", fontWeight: "700" }}>
+                3D Live Execution Sandbox
+              </span>
+            </div>
           </div>
 
           {/* Clear Button */}
-          {viewMode === "editor" && (
-            <button
-              onClick={handleClearCode}
-              title="Clear Editor"
-              style={{
-                padding: "6px 10px",
-                borderRadius: "8px",
-                border: "1px solid rgba(239, 68, 68, 0.3)",
-                background: "rgba(239, 68, 68, 0.1)",
-                color: "#fca5a5",
-                fontSize: "11px",
-                fontWeight: "700",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "4px",
-              }}
-            >
-              <Trash2 size={12} /> Clear
-            </button>
-          )}
+          <button
+            onClick={handleClearCode}
+            title="Clear Editor"
+            style={{
+              padding: "6px 12px",
+              borderRadius: "8px",
+              border: "1px solid rgba(239, 68, 68, 0.3)",
+              background: "rgba(239, 68, 68, 0.1)",
+              color: "#fca5a5",
+              fontSize: "11px",
+              fontWeight: "700",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+              transition: "all 0.2s",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(239, 68, 68, 0.2)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(239, 68, 68, 0.1)"; }}
+          >
+            <Trash2 size={12} /> Clear
+          </button>
         </div>
 
-        {/* ═══ VIEW 1: FREE CODE EDITOR ═══ */}
-        {viewMode === "editor" ? (
-          <>
-            {/* 8 Realm Tabs including 2D Matrix Grid */}
-            <div
-              style={{
-                display: "flex",
-                gap: "4px",
-                padding: "8px 12px",
-                background: "rgba(0, 0, 0, 0.3)",
-                borderBottom: "1px solid rgba(255, 255, 255, 0.06)",
-                overflowX: "auto",
-              }}
-            >
-              {Object.entries(REALM_CONFIG).map(([key, config]) => {
-                const isActive = activeRealm === key;
-                const Icon = config.icon;
-                return (
-                  <button
-                    key={key}
-                    onClick={() => handleSwitchRealm(key)}
-                    style={{
-                      padding: "6px 10px",
-                      borderRadius: "8px",
-                      border: isActive ? `1px solid ${config.color}66` : "1px solid transparent",
-                      background: isActive ? `${config.color}22` : "transparent",
-                      color: isActive ? config.color : "#94a3b8",
-                      fontSize: "11px",
-                      fontWeight: "700",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "5px",
-                      whiteSpace: "nowrap",
-                      transition: "all 0.2s",
-                    }}
-                  >
-                    <Icon size={12} color={isActive ? config.color : "#64748b"} />
-                    <span>{config.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Quick-Insert Algorithmic Snippets Bar */}
-            <div
-              style={{
-                padding: "6px 12px",
-                background: "rgba(15, 23, 42, 0.7)",
-                borderBottom: "1px solid rgba(255, 255, 255, 0.04)",
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                overflowX: "auto",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: "4px", color: "#38bdf8", fontSize: "11px", fontWeight: "800", whiteSpace: "nowrap" }}>
-                <Zap size={12} />
-                <span>Quick Snippets:</span>
-              </div>
-              {QUICK_TEMPLATES.map((tmpl) => (
-                <button
-                  key={tmpl.name}
-                  onClick={() => handleInsertTemplate(tmpl)}
-                  style={{
-                    padding: "3px 8px",
-                    borderRadius: "6px",
-                    background: "rgba(255, 255, 255, 0.05)",
-                    border: "1px solid rgba(255, 255, 255, 0.08)",
-                    color: "#cbd5e1",
-                    fontSize: "10.5px",
-                    fontWeight: "600",
-                    cursor: "pointer",
-                    whiteSpace: "nowrap",
-                    transition: "all 0.15s",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "rgba(56, 189, 248, 0.15)";
-                    e.currentTarget.style.color = "#38bdf8";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "rgba(255, 255, 255, 0.05)";
-                    e.currentTarget.style.color = "#cbd5e1";
-                  }}
-                >
-                  {tmpl.name}
-                </button>
-              ))}
-            </div>
-
-            {/* Monospace Free Editor */}
-            <div style={{ flex: 1, display: "flex", background: "#050811", position: "relative", overflow: "hidden" }}>
-              {/* Line Numbers Gutter */}
-              <div
+        {/* 8 Realm Tabs including 2D Matrix Grid */}
+        <div
+          style={{
+            display: "flex",
+            gap: "4px",
+            padding: "8px 12px",
+            background: "rgba(0, 0, 0, 0.3)",
+            borderBottom: "1px solid rgba(255, 255, 255, 0.06)",
+            overflowX: "auto",
+          }}
+        >
+          {Object.entries(REALM_CONFIG).map(([key, config]) => {
+            const isActive = activeRealm === key;
+            const Icon = config.icon;
+            return (
+              <button
+                key={key}
+                onClick={() => handleSwitchRealm(key)}
                 style={{
-                  width: "36px",
-                  padding: "16px 0",
-                  background: "rgba(0, 0, 0, 0.35)",
-                  borderRight: "1px solid rgba(255, 255, 255, 0.05)",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  userSelect: "none",
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: "12px",
-                  lineHeight: "1.6",
-                }}
-              >
-                {lines.map((_, i) => {
-                  const lineNum = i + 1;
-                  const isActive = highlightedLine === lineNum;
-                  return (
-                    <div
-                      key={lineNum}
-                      style={{
-                        height: "20.8px",
-                        color: isActive ? "#38bdf8" : "#334155",
-                        fontWeight: isActive ? "800" : "500",
-                        textShadow: isActive ? "0 0 8px #38bdf8" : "none",
-                      }}
-                    >
-                      {lineNum}
-                    </div>
-                  );
-                })}
-              </div>
-
-              <textarea
-                ref={textareaRef}
-                value={code}
-                onChange={(e) => {
-                  setCode(e.target.value);
-                  setErrorMessage(null);
-                }}
-                onKeyDown={handleKeyDown}
-                placeholder={`// Free Code Canvas: Type ANY JavaScript or DSA algorithm here...\n// e.g. 2D Spiral Matrix, BubbleSort, BST, Graphs, Stack, Queue, Heap\n// The 3D Engine will trace comparisons, swaps, matrix coordinates & routes in real-time!\n// Press Cmd+Enter to execute!`}
-                spellCheck="false"
-                style={{
-                  flex: 1,
-                  height: "100%",
-                  background: "transparent",
-                  color: "#f8fafc",
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: "13px",
-                  lineHeight: "1.6",
-                  padding: "16px 18px",
-                  border: "none",
-                  outline: "none",
-                  resize: "none",
-                  caretColor: "#38bdf8",
-                  boxSizing: "border-box",
-                }}
-              />
-            </div>
-
-            {/* Playback Controls Footer Bar */}
-            <div
-              style={{
-                padding: "10px 16px",
-                background: "rgba(10, 16, 30, 0.95)",
-                borderTop: "1px solid rgba(255, 255, 255, 0.08)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                {isPlaying ? (
-                  <button
-                    onClick={handlePause}
-                    style={{
-                      padding: "7px 15px",
-                      borderRadius: "9px",
-                      background: "rgba(245, 158, 11, 0.2)",
-                      border: "1px solid rgba(245, 158, 11, 0.5)",
-                      color: "#f59e0b",
-                      fontSize: "12px",
-                      fontWeight: "800",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "6px",
-                    }}
-                  >
-                    <Pause size={14} /> Pause
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => handleRunAll()}
-                    style={{
-                      padding: "7px 16px",
-                      borderRadius: "9px",
-                      background: "linear-gradient(135deg, #0284c7 0%, #38bdf8 100%)",
-                      border: "none",
-                      color: "#020817",
-                      fontSize: "12px",
-                      fontWeight: "900",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "6px",
-                      boxShadow: "0 0 16px rgba(56, 189, 248, 0.4)",
-                    }}
-                  >
-                    <Play size={14} fill="#020817" /> Run 3D
-                  </button>
-                )}
-
-                <button
-                  onClick={handleStepNext}
-                  disabled={isPlaying}
-                  style={{
-                    padding: "7px 12px",
-                    borderRadius: "9px",
-                    background: "rgba(255, 255, 255, 0.06)",
-                    border: "1px solid rgba(255, 255, 255, 0.1)",
-                    color: "#cbd5e1",
-                    fontSize: "12px",
-                    fontWeight: "600",
-                    cursor: isPlaying ? "not-allowed" : "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "5px",
-                    opacity: isPlaying ? 0.5 : 1,
-                  }}
-                >
-                  <SkipForward size={13} /> Step
-                </button>
-
-                <button
-                  onClick={handleReset}
-                  style={{
-                    padding: "7px 12px",
-                    borderRadius: "9px",
-                    background: "rgba(255, 255, 255, 0.06)",
-                    border: "1px solid rgba(255, 255, 255, 0.1)",
-                    color: "#cbd5e1",
-                    fontSize: "12px",
-                    fontWeight: "600",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "5px",
-                  }}
-                >
-                  <RotateCcw size={13} /> Reset
-                </button>
-              </div>
-
-              {/* Speed Multiplier Pill */}
-              <div
-                style={{
-                  display: "flex",
-                  background: "rgba(0, 0, 0, 0.4)",
+                  padding: "6px 10px",
                   borderRadius: "8px",
-                  padding: "3px",
-                  border: "1px solid rgba(255, 255, 255, 0.08)",
+                  border: isActive ? `1px solid ${config.color}66` : "1px solid transparent",
+                  background: isActive ? `${config.color}22` : "transparent",
+                  color: isActive ? config.color : "#94a3b8",
+                  fontSize: "11px",
+                  fontWeight: "700",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "5px",
+                  whiteSpace: "nowrap",
+                  transition: "all 0.2s",
                 }}
               >
-                {Object.entries(SPEEDS).map(([key, spd]) => (
-                  <button
-                    key={key}
-                    onClick={() => setSelectedSpeed(key)}
-                    style={{
-                      padding: "3px 8px",
-                      borderRadius: "6px",
-                      border: "none",
-                      background: selectedSpeed === key ? "#38bdf8" : "transparent",
-                      color: selectedSpeed === key ? "#020817" : "#64748b",
-                      fontSize: "11px",
-                      fontWeight: selectedSpeed === key ? "800" : "600",
-                      cursor: "pointer",
-                    }}
-                  >
-                    {spd.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </>
-        ) : (
-          /* ═══ VIEW 2: ALGORITHM EXAMPLES LIBRARY ═══ */
+                <Icon size={12} color={isActive ? config.color : "#64748b"} />
+                <span>{config.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Quick-Insert Algorithmic Snippets Bar */}
+        <div
+          style={{
+            padding: "6px 12px",
+            background: "rgba(15, 23, 42, 0.7)",
+            borderBottom: "1px solid rgba(255, 255, 255, 0.04)",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            overflowX: "auto",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "4px", color: "#38bdf8", fontSize: "11px", fontWeight: "800", whiteSpace: "nowrap" }}>
+            <Zap size={12} />
+            <span>Snippets:</span>
+          </div>
+          {QUICK_TEMPLATES.map((tmpl) => (
+            <button
+              key={tmpl.name}
+              onClick={() => handleInsertTemplate(tmpl)}
+              style={{
+                padding: "3px 8px",
+                borderRadius: "6px",
+                background: "rgba(255, 255, 255, 0.05)",
+                border: "1px solid rgba(255, 255, 255, 0.08)",
+                color: "#cbd5e1",
+                fontSize: "10.5px",
+                fontWeight: "600",
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+                transition: "all 0.15s",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "rgba(56, 189, 248, 0.15)";
+                e.currentTarget.style.color = "#38bdf8";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "rgba(255, 255, 255, 0.05)";
+                e.currentTarget.style.color = "#cbd5e1";
+              }}
+            >
+              {tmpl.name}
+            </button>
+          ))}
+        </div>
+
+        {/* Monospace Free Editor */}
+        <div style={{ flex: 1, display: "flex", background: "#050811", position: "relative", overflow: "hidden" }}>
+          {/* Line Numbers Gutter */}
           <div
             style={{
-              flex: 1,
-              padding: "16px",
-              overflowY: "auto",
+              width: "36px",
+              padding: "16px 0",
+              background: "rgba(0, 0, 0, 0.35)",
+              borderRight: "1px solid rgba(255, 255, 255, 0.05)",
               display: "flex",
               flexDirection: "column",
-              gap: "12px",
+              alignItems: "center",
+              userSelect: "none",
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: "12px",
+              lineHeight: "1.6",
             }}
           >
-            <div style={{ fontSize: "12px", color: "#94a3b8", marginBottom: "4px" }}>
-              Curated algorithmic templates with live step-by-step 3D visualizations:
-            </div>
-
-            {ALGORITHM_LIBRARY.map((ex) => {
-              const cfg = REALM_CONFIG[ex.category] || REALM_CONFIG.matrix;
-              const Icon = cfg.icon;
-
+            {lines.map((_, i) => {
+              const lineNum = i + 1;
+              const isActive = highlightedLine === lineNum;
               return (
                 <div
-                  key={ex.id}
+                  key={lineNum}
                   style={{
-                    background: "rgba(15, 23, 42, 0.7)",
-                    borderRadius: "14px",
-                    border: `1px solid ${cfg.color}33`,
-                    padding: "14px",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "8px",
-                    transition: "all 0.2s",
+                    height: "20.8px",
+                    color: isActive ? "#38bdf8" : "#334155",
+                    fontWeight: isActive ? "800" : "500",
+                    textShadow: isActive ? "0 0 8px #38bdf8" : "none",
                   }}
                 >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      <div
-                        style={{
-                          width: "28px",
-                          height: "28px",
-                          borderRadius: "8px",
-                          background: `${cfg.color}22`,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          color: cfg.color,
-                        }}
-                      >
-                        <Icon size={16} />
-                      </div>
-                      <div>
-                        <div style={{ color: "#ffffff", fontWeight: "800", fontSize: "13.5px" }}>{ex.title}</div>
-                        <div style={{ color: cfg.color, fontSize: "10.5px", fontWeight: "700" }}>{cfg.label}</div>
-                      </div>
-                    </div>
-
-                    <div style={{ display: "flex", gap: "6px" }}>
-                      <span style={{ padding: "3px 7px", borderRadius: "6px", background: "rgba(255,255,255,0.06)", fontSize: "10.5px", color: "#38bdf8", fontWeight: "700" }}>
-                        {ex.time}
-                      </span>
-                    </div>
-                  </div>
-
-                  <p style={{ margin: 0, fontSize: "12px", color: "#94a3b8", lineHeight: "1.4" }}>{ex.desc}</p>
-
-                  <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
-                    <button
-                      onClick={() => handleInsertTemplate({ realm: ex.category, code: ex.code })}
-                      style={{
-                        flex: 1,
-                        padding: "7px",
-                        borderRadius: "8px",
-                        background: "rgba(255, 255, 255, 0.05)",
-                        border: "1px solid rgba(255, 255, 255, 0.1)",
-                        color: "#f8fafc",
-                        fontSize: "11.5px",
-                        fontWeight: "700",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "6px",
-                      }}
-                    >
-                      <Copy size={12} /> Load into Editor
-                    </button>
-                    <button
-                      onClick={() => {
-                        handleInsertTemplate({ realm: ex.category, code: ex.code });
-                        setTimeout(() => handleRunAll(ex.code, ex.category), 100);
-                      }}
-                      style={{
-                        padding: "7px 14px",
-                        borderRadius: "8px",
-                        background: `linear-gradient(135deg, ${cfg.color} 0%, #0284c7 100%)`,
-                        border: "none",
-                        color: "#020817",
-                        fontSize: "11.5px",
-                        fontWeight: "900",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "5px",
-                      }}
-                    >
-                      <Play size={12} fill="#020817" /> Run 3D
-                    </button>
-                  </div>
+                  {lineNum}
                 </div>
               );
             })}
           </div>
-        )}
+
+          <textarea
+            ref={textareaRef}
+            value={code}
+            onChange={(e) => {
+              setCode(e.target.value);
+              setErrorMessage(null);
+            }}
+            onKeyDown={handleKeyDown}
+            placeholder={`// Free Code Canvas: Type ANY JavaScript or DSA algorithm here...\n// e.g. 2D Spiral Matrix, BubbleSort, BST, Graphs, Stack, Queue, Heap\n// The 3D Engine will trace comparisons, swaps, matrix coordinates & routes in real-time!\n// Press Cmd+Enter to execute!`}
+            spellCheck="false"
+            style={{
+              flex: 1,
+              height: "100%",
+              background: "transparent",
+              color: "#f8fafc",
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: "13px",
+              lineHeight: "1.6",
+              padding: "16px 18px",
+              border: "none",
+              outline: "none",
+              resize: "none",
+              caretColor: "#38bdf8",
+              boxSizing: "border-box",
+            }}
+          />
+        </div>
+
+        {/* Playback Controls Footer Bar */}
+        <div
+          style={{
+            padding: "10px 16px",
+            background: "rgba(10, 16, 30, 0.95)",
+            borderTop: "1px solid rgba(255, 255, 255, 0.08)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            {isPlaying ? (
+              <button
+                onClick={handlePause}
+                style={{
+                  padding: "7px 15px",
+                  borderRadius: "9px",
+                  background: "rgba(245, 158, 11, 0.2)",
+                  border: "1px solid rgba(245, 158, 11, 0.5)",
+                  color: "#f59e0b",
+                  fontSize: "12px",
+                  fontWeight: "800",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                }}
+              >
+                <Pause size={14} /> Pause
+              </button>
+            ) : (
+              <button
+                onClick={() => handleRunAll()}
+                style={{
+                  padding: "7px 16px",
+                  borderRadius: "9px",
+                  background: "linear-gradient(135deg, #0284c7 0%, #38bdf8 100%)",
+                  border: "none",
+                  color: "#020817",
+                  fontSize: "12px",
+                  fontWeight: "900",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  boxShadow: "0 0 16px rgba(56, 189, 248, 0.4)",
+                }}
+              >
+                <Play size={14} fill="#020817" /> Run 3D
+              </button>
+            )}
+
+            <button
+              onClick={handleStepNext}
+              disabled={isPlaying}
+              style={{
+                padding: "7px 12px",
+                borderRadius: "9px",
+                background: "rgba(255, 255, 255, 0.06)",
+                border: "1px solid rgba(255, 255, 255, 0.1)",
+                color: "#cbd5e1",
+                fontSize: "12px",
+                fontWeight: "600",
+                cursor: isPlaying ? "not-allowed" : "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "5px",
+                opacity: isPlaying ? 0.5 : 1,
+              }}
+            >
+              <SkipForward size={13} /> Step
+            </button>
+
+            <button
+              onClick={handleReset}
+              style={{
+                padding: "7px 12px",
+                borderRadius: "9px",
+                background: "rgba(255, 255, 255, 0.06)",
+                border: "1px solid rgba(255, 255, 255, 0.1)",
+                color: "#cbd5e1",
+                fontSize: "12px",
+                fontWeight: "600",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "5px",
+              }}
+            >
+              <RotateCcw size={13} /> Reset
+            </button>
+          </div>
+
+          {/* Speed Multiplier Pill */}
+          <div
+            style={{
+              display: "flex",
+              background: "rgba(0, 0, 0, 0.4)",
+              borderRadius: "8px",
+              padding: "3px",
+              border: "1px solid rgba(255, 255, 255, 0.08)",
+            }}
+          >
+            {Object.entries(SPEEDS).map(([key, spd]) => (
+              <button
+                key={key}
+                onClick={() => setSelectedSpeed(key)}
+                style={{
+                  padding: "3px 8px",
+                  borderRadius: "6px",
+                  border: "none",
+                  background: selectedSpeed === key ? "#38bdf8" : "transparent",
+                  color: selectedSpeed === key ? "#020817" : "#64748b",
+                  fontSize: "11px",
+                  fontWeight: selectedSpeed === key ? "800" : "600",
+                  cursor: "pointer",
+                }}
+              >
+                {spd.label}
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* Console / Variables / Complexity Bottom Drawer */}
         <div
