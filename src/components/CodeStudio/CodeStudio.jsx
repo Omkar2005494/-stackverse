@@ -19,7 +19,7 @@ import {
   Zap,
   LayoutGrid,
 } from "lucide-react";
-import { parseCodeTo3DActions, detectRealmFromCode } from "../../utils/codeTo3DInterpreter";
+import { parseCodeTo3DActions, detectRealmFromCode, detectLanguageFromCode } from "../../utils/codeTo3DInterpreter";
 import { soundFX } from "../../utils/soundFX";
 
 // 3D World Viewports
@@ -32,12 +32,22 @@ import HeapWorld from "../../worlds/HeapWorld";
 import LinkedListWorld from "../../worlds/LinkedListWorld";
 import Matrix3DWorld from "../../worlds/Matrix3DWorld";
 
-// --- QUICK-INSERT ALGORITHMIC TEMPLATES ---
-const QUICK_TEMPLATES = [
-  {
-    name: "Spiral Matrix (2D)",
-    realm: "matrix",
-    code: `// 🌀 2D Spiral Matrix Traversal
+// Supported Languages
+const LANGUAGES = [
+  { id: "javascript", label: "JavaScript", icon: "⚡" },
+  { id: "python", label: "Python", icon: "🐍" },
+  { id: "cpp", label: "C++", icon: "⚙️" },
+  { id: "java", label: "Java", icon: "☕" },
+  { id: "c", label: "C", icon: "🔤" },
+];
+
+// --- MULTI-LANGUAGE STARTER SNIPPETS ---
+const MULTI_LANG_TEMPLATES = {
+  javascript: [
+    {
+      name: "Spiral Matrix (2D)",
+      realm: "matrix",
+      code: `// 🌀 2D Spiral Matrix Traversal in JavaScript
 let grid = [
   [ 1,  2,  3 ],
   [ 4,  5,  6 ],
@@ -61,37 +71,11 @@ while (top <= bottom && left <= right) {
     left++;
   }
 }`,
-  },
-  {
-    name: "Matrix Rotate 90°",
-    realm: "matrix",
-    code: `// 🔄 90° Matrix Rotation (Transpose + Reverse)
-let grid = [
-  [ 1,  2,  3 ],
-  [ 4,  5,  6 ],
-  [ 7,  8,  9 ]
-];
-
-let n = grid.length;
-// 1. Transpose in 3D
-for (let i = 0; i < n; i++) {
-  for (let j = i + 1; j < n; j++) {
-    matrix.swap([i, j], [j, i]);
-    let temp = grid[i][j];
-    grid[i][j] = grid[j][i];
-    grid[j][i] = temp;
-  }
-}
-// 2. Reverse Rows in 3D
-for (let i = 0; i < n; i++) {
-  matrix.reverseRow(i);
-  grid[i].reverse();
-}`,
-  },
-  {
-    name: "Bubble Sort",
-    realm: "sorting",
-    code: `// Bubble Sort Algorithm
+    },
+    {
+      name: "Bubble Sort",
+      realm: "sorting",
+      code: `// Bubble Sort in JavaScript
 let arr = [60, 20, 80, 10, 40];
 
 for (let i = 0; i < arr.length; i++) {
@@ -105,43 +89,21 @@ for (let i = 0; i < arr.length; i++) {
     }
   }
 }`,
-  },
-  {
-    name: "Binary Search",
-    realm: "sorting",
-    code: `// Binary Search Algorithm
-let arr = [10, 20, 30, 40, 50, 60, 70];
-let target = 50;
-let left = 0, right = arr.length - 1;
-
-while (left <= right) {
-  let mid = Math.floor((left + right) / 2);
-  array.compare(mid, mid);
-  if (arr[mid] === target) {
-    console.log("Found target at index:", mid);
-    break;
-  } else if (arr[mid] < target) {
-    left = mid + 1;
-  } else {
-    right = mid - 1;
-  }
-}`,
-  },
-  {
-    name: "BST Construction",
-    realm: "tree",
-    code: `// Binary Search Tree (BST)
+    },
+    {
+      name: "BST Construction",
+      realm: "tree",
+      code: `// Binary Search Tree (BST)
 let values = [50, 25, 75, 12, 37, 62, 87];
-
 for (let val of values) {
   tree.insert(val);
 }
 tree.search(37);`,
-  },
-  {
-    name: "Graph Routing (BFS)",
-    realm: "graph",
-    code: `// Graph Network & BFS Traversal
+    },
+    {
+      name: "Graph Routing (BFS)",
+      realm: "graph",
+      code: `// Graph Network & BFS Traversal
 graph.addVertex("A");
 graph.addVertex("B");
 graph.addVertex("C");
@@ -153,38 +115,244 @@ graph.addEdge("B", "D");
 graph.addEdge("C", "D");
 
 graph.bfs("A");`,
-  },
-  {
-    name: "Stack Tower (LIFO)",
-    realm: "stack",
-    code: `// Stack Tower Operations
-for (let i = 1; i <= 5; i++) {
-  stack.push(i * 15);
+    },
+  ],
+
+  python: [
+    {
+      name: "Spiral Matrix (Python)",
+      realm: "matrix",
+      code: `# 🌀 2D Spiral Matrix Traversal in Python
+grid = [
+    [1, 2, 3],
+    [4, 5, 6],
+    [7, 8, 9]
+]
+
+top = 0
+bottom = len(grid) - 1
+left = 0
+right = len(grid[0]) - 1
+
+while top <= bottom and left <= right:
+    # 1. Top row
+    for c in range(left, right + 1):
+        print(f"Visited [{top}][{c}]")
+    top += 1
+
+    # 2. Right column
+    for r in range(top, bottom + 1):
+        print(f"Visited [{r}][{right}]")
+    right -= 1
+
+    # 3. Bottom row
+    if top <= bottom:
+        for c in range(right, left - 1, -1):
+            print(f"Visited [{bottom}][{c}]")
+        bottom -= 1
+
+    # 4. Left column
+    if left <= right:
+        for r in range(bottom, top - 1, -1):
+            print(f"Visited [{r}][{left}]")
+        left += 1`,
+    },
+    {
+      name: "Bubble Sort (Python)",
+      realm: "sorting",
+      code: `# Bubble Sort in Python
+arr = [60, 20, 80, 10, 40]
+n = len(arr)
+
+for i in range(n):
+    for j in range(0, n - i - 1):
+        if arr[j] > arr[j + 1]:
+            # In-place Python Tuple Swap
+            arr[j], arr[j + 1] = arr[j + 1], arr[j]
+            print(f"Swapped index {j} with {j+1}")`,
+    },
+    {
+      name: "BST Construction (Python)",
+      realm: "tree",
+      code: `# Binary Search Tree (Python)
+values = [50, 25, 75, 12, 37, 62, 87]
+
+for val in values:
+    tree.insert(val)
+
+tree.search(37)`,
+    },
+  ],
+
+  cpp: [
+    {
+      name: "Spiral Matrix (C++)",
+      realm: "matrix",
+      code: `// 🌀 2D Spiral Matrix in C++
+#include <iostream>
+#include <vector>
+using namespace std;
+
+int main() {
+    vector<vector<int>> grid = {
+        {1, 2, 3},
+        {4, 5, 6},
+        {7, 8, 9}
+    };
+
+    int top = 0, bottom = grid.size() - 1;
+    int left = 0, right = grid[0].size() - 1;
+
+    while (top <= bottom && left <= right) {
+        for (int c = left; c <= right; c++) {
+            cout << "Visited [" << top << "][" << c << "]" << endl;
+        }
+        top++;
+
+        for (int r = top; r <= bottom; r++) {
+            cout << "Visited [" << r << "][" << right << "]" << endl;
+        }
+        right--;
+
+        if (top <= bottom) {
+            for (int c = right; c >= left; c--) {
+                cout << "Visited [" << bottom << "][" << c << "]" << endl;
+            }
+            bottom--;
+        }
+
+        if (left <= right) {
+            for (int r = bottom; r >= top; r--) {
+                cout << "Visited [" << r << "][" << left << "]" << endl;
+            }
+            left++;
+        }
+    }
+    return 0;
+}`,
+    },
+    {
+      name: "Bubble Sort (C++)",
+      realm: "sorting",
+      code: `// Bubble Sort in C++
+#include <iostream>
+#include <vector>
+using namespace std;
+
+void bubbleSort(vector<int>& arr) {
+    int n = arr.size();
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n - i - 1; j++) {
+            if (arr[j] > arr[j + 1]) {
+                swap(arr[j], arr[j + 1]);
+            }
+        }
+    }
 }
-stack.pop();
-stack.push(99);`,
-  },
-  {
-    name: "Queue Stream (FIFO)",
-    realm: "queue",
-    code: `// FIFO Queue Buffer
-queue.enqueue(10);
-queue.enqueue(20);
-queue.enqueue(30);
-queue.dequeue();
-queue.enqueue(40);`,
-  },
-  {
-    name: "Min-Heap Sift",
-    realm: "heap",
-    code: `// Min-Heap Invariant
-heap.insert(40);
-heap.insert(20);
-heap.insert(60);
-heap.insert(10);
-heap.extractRoot();`,
-  },
-];
+
+int main() {
+    vector<int> arr = {60, 20, 80, 10, 40};
+    bubbleSort(arr);
+    return 0;
+}`,
+    },
+  ],
+
+  java: [
+    {
+      name: "Spiral Matrix (Java)",
+      realm: "matrix",
+      code: `// 🌀 2D Spiral Matrix in Java
+public class Solution {
+    public static void main(String[] args) {
+        int[][] grid = {
+            {1, 2, 3},
+            {4, 5, 6},
+            {7, 8, 9}
+        };
+
+        int top = 0, bottom = grid.length - 1;
+        int left = 0, right = grid[0].length - 1;
+
+        while (top <= bottom && left <= right) {
+            for (int c = left; c <= right; c++) {
+                System.out.println("Visited [" + top + "][" + c + "]");
+            }
+            top++;
+
+            for (int r = top; r <= bottom; r++) {
+                System.out.println("Visited [" + r + "][" + right + "]");
+            }
+            right--;
+
+            if (top <= bottom) {
+                for (int c = right; c >= left; c--) {
+                    System.out.println("Visited [" + bottom + "][" + c + "]");
+                }
+                bottom--;
+            }
+
+            if (left <= right) {
+                for (int r = bottom; r >= top; r--) {
+                    System.out.println("Visited [" + r + "][" + left + "]");
+                }
+                left++;
+            }
+        }
+    }
+}`,
+    },
+    {
+      name: "Bubble Sort (Java)",
+      realm: "sorting",
+      code: `// Bubble Sort in Java
+public class Solution {
+    public static void main(String[] args) {
+        int[] arr = {60, 20, 80, 10, 40};
+        int n = arr.length;
+
+        for (int i = 0; i < n - 1; i++) {
+            for (int j = 0; j < n - i - 1; j++) {
+                if (arr[j] > arr[j + 1]) {
+                    int temp = arr[j];
+                    arr[j] = arr[j + 1];
+                    arr[j + 1] = temp;
+                }
+            }
+        }
+    }
+}`,
+    },
+  ],
+
+  c: [
+    {
+      name: "Bubble Sort (C)",
+      realm: "sorting",
+      code: `// Bubble Sort in C
+#include <stdio.h>
+
+void bubbleSort(int arr[], int n) {
+    for (int i = 0; i < n - 1; i++) {
+        for (int j = 0; j < n - i - 1; j++) {
+            if (arr[j] > arr[j + 1]) {
+                int temp = arr[j];
+                arr[j] = arr[j + 1];
+                arr[j + 1] = temp;
+            }
+        }
+    }
+}
+
+int main() {
+    int arr[] = {60, 20, 80, 10, 40};
+    int n = sizeof(arr) / sizeof(arr[0]);
+    bubbleSort(arr, n);
+    return 0;
+}`,
+    },
+  ],
+};
 
 const SPEEDS = {
   slow: { label: "0.5x", delayMs: 1100 },
@@ -194,19 +362,20 @@ const SPEEDS = {
 };
 
 const REALM_CONFIG = {
-  matrix: { label: "2D Matrix Grid", icon: LayoutGrid, color: "#22d3ee", time: "O(M × N)", space: "O(1)", helper: "matrix.visit(r, c), grid[r][c], console.log('[r][c]')" },
-  sorting: { label: "Array & Sorting", icon: BarChart3, color: "#38bdf8", time: "O(n log n)", space: "O(1)", helper: "array.swap(i, j), array.compare(i, j), array.push(val)" },
-  stack: { label: "Stack (LIFO)", icon: Layers, color: "#f59e0b", time: "O(1)", space: "O(1)", helper: "stack.push(val), stack.pop(), stack.peek()" },
-  queue: { label: "Queue (FIFO)", icon: ListOrdered, color: "#06b6d4", time: "O(1)", space: "O(1)", helper: "queue.enqueue(val), queue.dequeue(), queue.peek()" },
-  linkedlist: { label: "LinkedList", icon: GitBranch, color: "#10b981", time: "O(1) / O(n)", space: "O(1)", helper: "list.insert(val), list.insertHead(val), list.delete(val), list.reverse()" },
-  tree: { label: "Tree (BST)", icon: Network, color: "#34d399", time: "O(log n)", space: "O(1)", helper: "tree.insert(val), tree.delete(val), tree.search(val)" },
-  graph: { label: "Graph Network", icon: Network, color: "#a855f7", time: "O(V + E)", space: "O(V)", helper: "graph.addVertex(v), graph.addEdge(u, v), graph.bfs(start)" },
+  matrix: { label: "2D Matrix Grid", icon: LayoutGrid, color: "#22d3ee", time: "O(M × N)", space: "O(1)", helper: "matrix[r][c], grid[r][c], print('[r][c]')" },
+  sorting: { label: "Array & Sorting", icon: BarChart3, color: "#38bdf8", time: "O(n log n)", space: "O(1)", helper: "arr[i], swap(arr[i], arr[j]), array.swap(i, j)" },
+  stack: { label: "Stack (LIFO)", icon: Layers, color: "#f59e0b", time: "O(1)", space: "O(1)", helper: "stack.push(val), stack.pop()" },
+  queue: { label: "Queue (FIFO)", icon: ListOrdered, color: "#06b6d4", time: "O(1)", space: "O(1)", helper: "queue.enqueue(val), queue.dequeue()" },
+  linkedlist: { label: "LinkedList", icon: GitBranch, color: "#10b981", time: "O(1) / O(n)", space: "O(1)", helper: "list.insert(val), head.next" },
+  tree: { label: "Tree (BST)", icon: Network, color: "#34d399", time: "O(log n)", space: "O(1)", helper: "tree.insert(val), tree.search(val)" },
+  graph: { label: "Graph Network", icon: Network, color: "#a855f7", time: "O(V + E)", space: "O(V)", helper: "graph.addVertex(v), graph.addEdge(u, v)" },
   heap: { label: "Binary Heap", icon: Crown, color: "#fbbf24", time: "O(log n)", space: "O(1)", helper: "heap.insert(val), heap.extractRoot()" },
 };
 
 export default function CodeStudio() {
+  const [selectedLanguage, setSelectedLanguage] = useState("javascript");
   const [activeRealm, setActiveRealm] = useState("matrix");
-  const [code, setCode] = useState(QUICK_TEMPLATES[0].code);
+  const [code, setCode] = useState(MULTI_LANG_TEMPLATES.javascript[0].code);
 
   const [selectedSpeed, setSelectedSpeed] = useState("normal");
   const [activeStepIndex, setActiveStepIndex] = useState(-1);
@@ -220,7 +389,6 @@ export default function CodeStudio() {
   const [consoleLogs, setConsoleLogs] = useState([]);
 
   // Dedicated 3D State Containers
-  // 1. Matrix 2D Grid
   const [matrixData, setMatrixData] = useState([
     [1, 2, 3],
     [4, 5, 6],
@@ -230,12 +398,10 @@ export default function CodeStudio() {
   const [visitedCells, setVisitedCells] = useState([]);
   const [swappingCells, setSwappingCells] = useState([]);
 
-  // 2. Sorting Array
   const [arrayData, setArrayData] = useState([60, 20, 80, 10, 40]);
   const [comparingIndices, setComparingIndices] = useState([]);
   const [swappingIndices, setSwappingIndices] = useState([]);
 
-  // 3. Stack / Queue / Tree / Graph / Heap
   const [stackData, setStackData] = useState([]);
   const [queueData, setQueueData] = useState([]);
   const [treeData, setTreeData] = useState([]);
@@ -439,7 +605,6 @@ export default function CodeStudio() {
           soundFX.playPush();
           setHeapData((prev) => {
             const next = [...prev, val];
-            // Sift-up for Min-Heap invariant
             let i = next.length - 1;
             while (i > 0) {
               let parent = Math.floor((i - 1) / 2);
@@ -458,7 +623,6 @@ export default function CodeStudio() {
             if (prev.length <= 1) return [];
             const next = [...prev];
             next[0] = next.pop();
-            // Sift-down for Min-Heap invariant
             let i = 0;
             while (i * 2 + 1 < next.length) {
               let left = i * 2 + 1;
@@ -525,6 +689,18 @@ export default function CodeStudio() {
     soundFX.playClear();
   };
 
+  // Switch Language
+  const handleSwitchLanguage = (langId) => {
+    setSelectedLanguage(langId);
+    handleReset();
+    const tmpls = MULTI_LANG_TEMPLATES[langId];
+    if (tmpls && tmpls.length > 0) {
+      setCode(tmpls[0].code);
+      setActiveRealm(tmpls[0].realm);
+    }
+    soundFX.playPeek();
+  };
+
   // Switch Realm
   const handleSwitchRealm = (realmKey) => {
     handleReset();
@@ -536,13 +712,14 @@ export default function CodeStudio() {
   const compileCode = (customCode = code, customRealm = activeRealm) => {
     setErrorMessage(null);
 
-    const detected = detectRealmFromCode(customCode);
-    const targetRealm = customRealm || detected;
-    if (detected !== activeRealm && customCode.trim()) {
-      setActiveRealm(detected);
+    const detectedLang = detectLanguageFromCode(customCode);
+    const detectedRealm = detectRealmFromCode(customCode);
+    const targetRealm = customRealm || detectedRealm;
+    if (detectedRealm !== activeRealm && customCode.trim()) {
+      setActiveRealm(detectedRealm);
     }
 
-    const parsed = parseCodeTo3DActions(customCode, targetRealm);
+    const parsed = parseCodeTo3DActions(customCode, targetRealm, selectedLanguage || detectedLang);
 
     if (parsed.logs) {
       setConsoleLogs(parsed.logs);
@@ -564,7 +741,7 @@ export default function CodeStudio() {
 
     if (parsed.actions.length === 0) {
       soundFX.playWarning();
-      setErrorMessage(`No 3D actions generated yet. Write operations like: ${REALM_CONFIG[targetRealm]?.helper || "array.swap(i, j)"}`);
+      setErrorMessage(`No 3D actions generated. Write core operations in ${selectedLanguage.toUpperCase()}: e.g. loops, indexing, or comparisons.`);
       setIsPlaying(false);
       return null;
     }
@@ -647,11 +824,11 @@ export default function CodeStudio() {
       const start = target.selectionStart;
       const end = target.selectionEnd;
 
-      const newCode = code.substring(0, start) + "  " + code.substring(end);
+      const newCode = code.substring(0, start) + "    " + code.substring(end);
       setCode(newCode);
 
       setTimeout(() => {
-        target.selectionStart = target.selectionEnd = start + 2;
+        target.selectionStart = target.selectionEnd = start + 4;
       }, 0);
     }
   };
@@ -662,7 +839,6 @@ export default function CodeStudio() {
     setActiveRealm(tmpl.realm);
     setCode(tmpl.code);
 
-    // Initialize 3D starting state per template
     if (tmpl.realm === "matrix") {
       setMatrixData([
         [1, 2, 3],
@@ -673,11 +849,7 @@ export default function CodeStudio() {
       setVisitedCells([]);
       setSwappingCells([]);
     } else if (tmpl.realm === "sorting") {
-      if (tmpl.name === "Binary Search") {
-        setArrayData([10, 20, 30, 40, 50, 60, 70]);
-      } else {
-        setArrayData([60, 20, 80, 10, 40]);
-      }
+      setArrayData([60, 20, 80, 10, 40]);
       setComparingIndices([]);
       setSwappingIndices([]);
     } else if (tmpl.realm === "tree") {
@@ -696,11 +868,12 @@ export default function CodeStudio() {
     }
 
     soundFX.playTreeFound();
-    setStatusLog(`Loaded template: ${tmpl.name}. Click 'Run 3D' to animate from the start.`);
+    setStatusLog(`Loaded ${selectedLanguage.toUpperCase()} snippet: ${tmpl.name}. Click 'Run 3D' to execute.`);
   };
 
   const lines = (code || "").split("\n");
   const realmInfo = REALM_CONFIG[activeRealm] || REALM_CONFIG.matrix;
+  const currentLangSnippets = MULTI_LANG_TEMPLATES[selectedLanguage] || MULTI_LANG_TEMPLATES.javascript;
 
   return (
     <div
@@ -717,8 +890,8 @@ export default function CodeStudio() {
       {/* LEFT PANE: Free Code Editor & DSA Tools (48% Width) */}
       <div
         style={{
-          width: "530px",
-          minWidth: "440px",
+          width: "540px",
+          minWidth: "450px",
           height: "100%",
           display: "flex",
           flexDirection: "column",
@@ -727,10 +900,10 @@ export default function CodeStudio() {
           zIndex: 20,
         }}
       >
-        {/* Main Header Bar */}
+        {/* Main Header Bar with Language Selector */}
         <div
           style={{
-            padding: "12px 18px",
+            padding: "10px 16px",
             borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
             display: "flex",
             alignItems: "center",
@@ -738,13 +911,7 @@ export default function CodeStudio() {
           }}
         >
           {/* Header Title */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-            }}
-          >
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <div
               style={{
                 width: "28px",
@@ -760,13 +927,49 @@ export default function CodeStudio() {
               <Code2 size={16} color="#020817" />
             </div>
             <div>
-              <span style={{ color: "#ffffff", fontWeight: "900", fontSize: "14px", letterSpacing: "0.5px" }}>
-                Free Code Editor
-              </span>
-              <span style={{ display: "block", color: "#38bdf8", fontSize: "10.5px", fontWeight: "700" }}>
-                3D Live Execution Sandbox
+              <span style={{ color: "#ffffff", fontWeight: "900", fontSize: "13.5px" }}>
+                Universal Code Studio
               </span>
             </div>
+          </div>
+
+          {/* Language Selector Pills */}
+          <div
+            style={{
+              display: "flex",
+              background: "rgba(0, 0, 0, 0.4)",
+              borderRadius: "10px",
+              padding: "3px",
+              border: "1px solid rgba(255, 255, 255, 0.08)",
+              gap: "2px",
+            }}
+          >
+            {LANGUAGES.map((lang) => {
+              const isActive = selectedLanguage === lang.id;
+              return (
+                <button
+                  key={lang.id}
+                  onClick={() => handleSwitchLanguage(lang.id)}
+                  style={{
+                    padding: "4px 8px",
+                    borderRadius: "7px",
+                    border: "none",
+                    background: isActive ? "linear-gradient(135deg, #0284c7 0%, #38bdf8 100%)" : "transparent",
+                    color: isActive ? "#020817" : "#94a3b8",
+                    fontSize: "11px",
+                    fontWeight: isActive ? "900" : "600",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
+                    transition: "all 0.15s",
+                  }}
+                >
+                  <span>{lang.icon}</span>
+                  <span>{lang.label}</span>
+                </button>
+              );
+            })}
           </div>
 
           {/* Clear Button */}
@@ -774,7 +977,7 @@ export default function CodeStudio() {
             onClick={handleClearCode}
             title="Clear Editor"
             style={{
-              padding: "6px 12px",
+              padding: "5px 9px",
               borderRadius: "8px",
               border: "1px solid rgba(239, 68, 68, 0.3)",
               background: "rgba(239, 68, 68, 0.1)",
@@ -785,12 +988,9 @@ export default function CodeStudio() {
               display: "flex",
               alignItems: "center",
               gap: "4px",
-              transition: "all 0.2s",
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(239, 68, 68, 0.2)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(239, 68, 68, 0.1)"; }}
           >
-            <Trash2 size={12} /> Clear
+            <Trash2 size={12} />
           </button>
         </div>
 
@@ -799,7 +999,7 @@ export default function CodeStudio() {
           style={{
             display: "flex",
             gap: "4px",
-            padding: "8px 12px",
+            padding: "7px 12px",
             background: "rgba(0, 0, 0, 0.3)",
             borderBottom: "1px solid rgba(255, 255, 255, 0.06)",
             overflowX: "auto",
@@ -813,7 +1013,7 @@ export default function CodeStudio() {
                 key={key}
                 onClick={() => handleSwitchRealm(key)}
                 style={{
-                  padding: "6px 10px",
+                  padding: "5px 9px",
                   borderRadius: "8px",
                   border: isActive ? `1px solid ${config.color}66` : "1px solid transparent",
                   background: isActive ? `${config.color}22` : "transparent",
@@ -838,7 +1038,7 @@ export default function CodeStudio() {
         {/* Quick-Insert Algorithmic Snippets Bar */}
         <div
           style={{
-            padding: "6px 12px",
+            padding: "5px 12px",
             background: "rgba(15, 23, 42, 0.7)",
             borderBottom: "1px solid rgba(255, 255, 255, 0.04)",
             display: "flex",
@@ -847,11 +1047,11 @@ export default function CodeStudio() {
             overflowX: "auto",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "4px", color: "#38bdf8", fontSize: "11px", fontWeight: "800", whiteSpace: "nowrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "4px", color: "#38bdf8", fontSize: "10.5px", fontWeight: "800", whiteSpace: "nowrap" }}>
             <Zap size={12} />
-            <span>Snippets:</span>
+            <span>{selectedLanguage.toUpperCase()} Snippets:</span>
           </div>
-          {QUICK_TEMPLATES.map((tmpl) => (
+          {currentLangSnippets.map((tmpl) => (
             <button
               key={tmpl.name}
               onClick={() => handleInsertTemplate(tmpl)}
@@ -926,7 +1126,7 @@ export default function CodeStudio() {
               setErrorMessage(null);
             }}
             onKeyDown={handleKeyDown}
-            placeholder={`// Free Code Canvas: Type ANY JavaScript or DSA algorithm here...\n// e.g. 2D Spiral Matrix, BubbleSort, BST, Graphs, Stack, Queue, Heap\n// The 3D Engine will trace comparisons, swaps, matrix coordinates & routes in real-time!\n// Press Cmd+Enter to execute!`}
+            placeholder={`// Write core ${selectedLanguage.toUpperCase()} DSA code here...\n// Supports: Python (def/range), C++ (#include/vector/swap), Java (public class/main), C (stdio/printf), JavaScript\n// Press Cmd+Enter to execute in 3D!`}
             spellCheck="false"
             style={{
               flex: 1,
@@ -1193,6 +1393,10 @@ export default function CodeStudio() {
 
             {activeTab === "complexity" && (
               <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                <div>
+                  <span style={{ color: "#94a3b8" }}>Language: </span>
+                  <span style={{ color: "#38bdf8", fontWeight: "800" }}>{selectedLanguage.toUpperCase()}</span>
+                </div>
                 <div>
                   <span style={{ color: "#94a3b8" }}>Realm: </span>
                   <span style={{ color: realmInfo.color, fontWeight: "800" }}>{realmInfo.label}</span>

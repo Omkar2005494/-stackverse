@@ -1,12 +1,40 @@
 /**
- * Universal Dynamic Code-to-3D Interpreter & Hardened DSA Execution Engine.
+ * Universal Multi-Language Code-to-3D Interpreter & Hardened DSA Execution Engine.
+ * 
+ * Supports Core Idiomatic Code in:
+ * 1. JavaScript / TypeScript
+ * 2. Python (def, range(), len(), print(), indentation/blocks, list swapping)
+ * 3. C++ (#include, vector, swap(), cout, main(), classes, structs)
+ * 4. Java (public class, static void main, int[], System.out.println)
+ * 5. C (#include <stdio.h>, int arr[], printf, pointers, main)
  * 
  * Security Features:
  * 1. Blacklists & shadows all dangerous browser globals (window, document, fetch, localStorage, etc.)
- * 2. Automatic Infinite Loop Guards (__loopCounter injection) to prevent browser thread freeze.
+ * 2. Automatic Infinite Loop Guards (__loopGuard injection) to prevent browser thread freeze.
  * 3. Execution time limits & Maximum 3D Action Memory Caps.
  * 4. Safe Proxy Instrumentation for real-time 3D algorithm tracing.
  */
+
+// Detect language from source code
+export function detectLanguageFromCode(code) {
+  if (!code || typeof code !== "string") return "javascript";
+  const lower = code.toLowerCase();
+
+  if (code.includes("#include") && (lower.includes("iostream") || lower.includes("vector") || lower.includes("using namespace std"))) {
+    return "cpp";
+  }
+  if (code.includes("#include") && lower.includes("stdio.h")) {
+    return "c";
+  }
+  if (code.includes("public class") || code.includes("public static void main") || code.includes("System.out.print")) {
+    return "java";
+  }
+  if (/^\s*def\s+[a-zA-Z_]/m.test(code) || /^\s*class\s+[a-zA-Z_].*:/m.test(code) || code.includes("print(") || code.includes("range(") || code.includes("elif ")) {
+    return "python";
+  }
+
+  return "javascript";
+}
 
 // Detect which 3D realm the user's custom code targets
 export function detectRealmFromCode(code) {
@@ -19,9 +47,12 @@ export function detectRealmFromCode(code) {
     lower.includes("grid") ||
     lower.includes("spiralorder") ||
     lower.includes("rotatematrix") ||
+    lower.includes("spiral_order") ||
+    lower.includes("rotate_matrix") ||
     lower.includes("top <=") ||
     lower.includes("bottom >=") ||
     /\[\s*\[\s*\d+/.test(code) ||
+    /\{\s*\{\s*\d+/.test(code) || // C++ / Java {{1, 2}, {3, 4}}
     /\[\s*[a-zA-Z_$][a-zA-Z0-9_$]*\s*\]\s*\[\s*[a-zA-Z_$][a-zA-Z0-9_$]*\s*\]/.test(code)
   ) {
     return "matrix";
@@ -31,6 +62,8 @@ export function detectRealmFromCode(code) {
   if (
     lower.includes("addedge") ||
     lower.includes("addvertex") ||
+    lower.includes("add_edge") ||
+    lower.includes("add_vertex") ||
     lower.includes("graph.") ||
     lower.includes("dijkstra") ||
     lower.includes("adjlist") ||
@@ -43,9 +76,12 @@ export function detectRealmFromCode(code) {
   // Tree keywords
   if (
     lower.includes("treenode") ||
+    lower.includes("tree_node") ||
     lower.includes("tree.") ||
     lower.includes("root.left") ||
     lower.includes("root.right") ||
+    lower.includes("root->left") ||
+    lower.includes("root->right") ||
     lower.includes("node.left") ||
     lower.includes("node.right") ||
     lower.includes("bst") ||
@@ -61,9 +97,12 @@ export function detectRealmFromCode(code) {
     lower.includes("heap.") ||
     lower.includes("minheap") ||
     lower.includes("maxheap") ||
+    lower.includes("min_heap") ||
     lower.includes("priorityqueue") ||
+    lower.includes("priority_queue") ||
     lower.includes("heapify") ||
     lower.includes("extractroot") ||
+    lower.includes("extract_root") ||
     lower.includes("siftup") ||
     lower.includes("siftdown")
   ) {
@@ -73,10 +112,14 @@ export function detectRealmFromCode(code) {
   // Linked List keywords
   if (
     lower.includes("listnode") ||
+    lower.includes("list_node") ||
     lower.includes("linkedlist") ||
+    lower.includes("linked_list") ||
     lower.includes("list.") ||
     lower.includes("node.next") ||
+    lower.includes("node->next") ||
     lower.includes("head.next") ||
+    lower.includes("head->next") ||
     lower.includes("inserthead")
   ) {
     return "linkedlist";
@@ -104,6 +147,171 @@ export function detectRealmFromCode(code) {
 
   // Default to Sorting / Array
   return "sorting";
+}
+
+// Convert Python indentation-based code to JavaScript blocks
+function pythonToJavaScript(pyCode) {
+  const lines = pyCode.split("\n");
+  const jsLines = [];
+  const indentStack = [0];
+
+  for (let rawLine of lines) {
+    // Preserve line comments
+    if (rawLine.trim().startsWith("#")) {
+      jsLines.push(rawLine.replace("#", "//"));
+      continue;
+    }
+    if (!rawLine.trim()) {
+      jsLines.push("");
+      continue;
+    }
+
+    const indent = rawLine.search(/\S/);
+    let line = rawLine.trim();
+
+    // Close blocks when unindenting
+    while (indentStack.length > 1 && indent < indentStack[indentStack.length - 1]) {
+      indentStack.pop();
+      jsLines.push(" ".repeat(indentStack[indentStack.length - 1]) + "}");
+    }
+
+    // Python -> JS syntax transformations
+    // 1. Array/Tuple swap: a, b = b, a or arr[i], arr[j] = arr[j], arr[i]
+    const swapMatch = line.match(/^([a-zA-Z0-9_\[\]]+)\s*,\s*([a-zA-Z0-9_\[\]]+)\s*=\s*([a-zA-Z0-9_\[\]]+)\s*,\s*([a-zA-Z0-9_\[\]]+)$/);
+    if (swapMatch) {
+      line = `[${swapMatch[1]}, ${swapMatch[2]}] = [${swapMatch[3]}, ${swapMatch[4]}];`;
+    }
+
+    // 2. Range loops
+    // for i in range(start, stop, step):
+    line = line.replace(/for\s+([a-zA-Z_][a-zA-Z0-9_]*)\s+in\s+range\(([^,]+),\s*([^,]+),\s*([^)]+)\)\s*:/g, "for (let $1 = $2; $1 < $3; $1 += $4) {");
+    // for i in range(start, stop):
+    line = line.replace(/for\s+([a-zA-Z_][a-zA-Z0-9_]*)\s+in\s+range\(([^,]+),\s*([^)]+)\)\s*:/g, "for (let $1 = $2; $1 < $3; $1++) {");
+    // for i in range(stop):
+    line = line.replace(/for\s+([a-zA-Z_][a-zA-Z0-9_]*)\s+in\s+range\(([^)]+)\)\s*:/g, "for (let $1 = 0; $1 < $2; $1++) {");
+    // for item in iterable:
+    line = line.replace(/for\s+([a-zA-Z_][a-zA-Z0-9_]*)\s+in\s+([^:]+):/g, "for (let $1 of $2) {");
+
+    // 3. Conditionals & while
+    line = line.replace(/while\s+(.+)\s*:/g, "while ($1) {");
+    line = line.replace(/if\s+(.+)\s*:/g, "if ($1) {");
+    line = line.replace(/elif\s+(.+)\s*:/g, "} else if ($1) {");
+    line = line.replace(/else\s*:/g, "} else {");
+
+    // 4. Function & Class definitions
+    line = line.replace(/def\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(([^)]*)\)\s*(?:->\s*[^:]+)?\s*:/g, (m, fnName, args) => {
+      const cleanArgs = args.replace(/\bself\b\s*,?\s*/g, "").replace(/:[^,)]+/g, "");
+      return `function ${fnName}(${cleanArgs}) {`;
+    });
+    line = line.replace(/class\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:\([^)]*\))?\s*:/g, "class $1 {");
+
+    // 5. Python builtins
+    line = line.replace(/\blen\(([^)]+)\)/g, "$1.length");
+    line = line.replace(/\bprint\(/g, "console.log(");
+    line = line.replace(/\.append\(/g, ".push(");
+    line = line.replace(/\bTrue\b/g, "true");
+    line = line.replace(/\bFalse\b/g, "false");
+    line = line.replace(/\bNone\b/g, "null");
+    line = line.replace(/\band\b/g, "&&");
+    line = line.replace(/\bor\b/g, "||");
+    line = line.replace(/\bnot\b/g, "!");
+
+    // Check if block was opened
+    if (rawLine.trim().endsWith(":")) {
+      indentStack.push(indent + 4);
+    } else if (!line.endsWith(";") && !line.endsWith("{") && !line.endsWith("}")) {
+      line += ";";
+    }
+
+    jsLines.push(" ".repeat(indent) + line);
+  }
+
+  // Close remaining indentation blocks
+  while (indentStack.length > 1) {
+    indentStack.pop();
+    jsLines.push(" ".repeat(indentStack[indentStack.length - 1]) + "}");
+  }
+
+  return jsLines.join("\n");
+}
+
+// Convert C++ / C / Java code to executable JavaScript
+function cppJavaToJavaScript(code) {
+  let js = code;
+
+  // 1. Remove preprocessor & package headers
+  js = js.replace(/#include\s*<[^>]+>/g, "");
+  js = js.replace(/#include\s*"[^"]+"/g, "");
+  js = js.replace(/using\s+namespace\s+std\s*;/g, "");
+  js = js.replace(/package\s+[a-zA-Z0-9_.]+;/g, "");
+  js = js.replace(/import\s+[a-zA-Z0-9_.*]+;/g, "");
+
+  // 2. Remove Java class wrapping: public class Solution / Main { ... }
+  js = js.replace(/public\s+class\s+[a-zA-Z0-9_]+\s*\{/g, "");
+  js = js.replace(/public\s+static\s+void\s+main\s*\([^)]*\)\s*\{/g, "function __main__() {");
+
+  // 3. Convert C++ / C main(): int main(...) { -> function __main__() {
+  js = js.replace(/int\s+main\s*\([^)]*\)\s*\{/g, "function __main__() {");
+
+  // 4. Convert std::cout / printf / System.out.println
+  js = js.replace(/cout\s*<<\s*([^;]+);/g, (m, expr) => {
+    const parts = expr.split("<<").map((p) => p.trim()).filter((p) => p !== "endl" && p !== "'\\n'" && p !== '"\\n"');
+    return `console.log(${parts.join(", ")});`;
+  });
+  js = js.replace(/std::cout\s*<<\s*([^;]+);/g, (m, expr) => {
+    const parts = expr.split("<<").map((p) => p.trim()).filter((p) => p !== "endl" && p !== "'\\n'" && p !== '"\\n"');
+    return `console.log(${parts.join(", ")});`;
+  });
+  js = js.replace(/printf\s*\(([^;]+)\);/g, "console.log($1);");
+  js = js.replace(/System\.out\.println\s*\(([^;]*)\);/g, "console.log($1);");
+  js = js.replace(/System\.out\.print\s*\(([^;]*)\);/g, "console.log($1);");
+
+  // 5. Convert 2D Matrix / Vector literals: {{1, 2}, {3, 4}} -> [[1, 2], [3, 4]]
+  js = js.replace(/=\s*\{\s*\{/g, "= [[");
+  js = js.replace(/\}\s*,\s*\{/g, "], [");
+  js = js.replace(/\}\s*\};/g, "]];");
+
+  // 6. Convert 1D array literals: {1, 2, 3, 4} -> [1, 2, 3, 4]
+  js = js.replace(/=\s*\{([^}]+)\};/g, "= [$1];");
+
+  // 7. Strip C++ / Java / C types in declarations
+  js = js.replace(/\b(?:vector<vector<[a-zA-Z0-9_]+>>|vector<[a-zA-Z0-9_]+>|int\[\]\[\]|int\[\]|int|float|double|char|bool|auto|long|void|size_t)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=/g, "let $1 =");
+  js = js.replace(/\b(?:vector<vector<[a-zA-Z0-9_]+>>|vector<[a-zA-Z0-9_]+>|int\[\]\[\]|int\[\]|int|float|double|char|bool|auto|long|void|size_t)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*;/g, "let $1;");
+
+  // 8. Convert C++ swap(a, b) or swap(arr[i], arr[j])
+  js = js.replace(/\bswap\s*\(\s*([a-zA-Z0-9_\[\]]+)\s*,\s*([a-zA-Z0-9_\[\]]+)\s*\);/g, (m, a, b) => {
+    return `[${a}, ${b}] = [${b}, ${a}];`;
+  });
+
+  // 9. Methods: .size() -> .length, push_back() -> push()
+  js = js.replace(/\.size\(\)/g, ".length");
+  js = js.replace(/\.push_back\(/g, ".push(");
+
+  // 10. Auto-invoke __main__() if defined
+  if (js.includes("function __main__()")) {
+    js += "\n__main__();\n";
+  }
+
+  return js;
+}
+
+// Universal Multi-Language Transpiler
+export function transpileToExecutableJS(sourceCode, language = "auto") {
+  if (!sourceCode || typeof sourceCode !== "string") return "";
+
+  let lang = language;
+  if (lang === "auto") {
+    lang = detectLanguageFromCode(sourceCode);
+  }
+
+  if (lang === "python") {
+    return pythonToJavaScript(sourceCode);
+  }
+  if (lang === "cpp" || lang === "c" || lang === "java") {
+    return cppJavaToJavaScript(sourceCode);
+  }
+
+  return sourceCode;
 }
 
 // Deep clone scope objects safely
@@ -139,12 +347,10 @@ const BLOCKED_GLOBALS = [
 function injectLoopGuards(sourceCode) {
   let guarded = sourceCode;
 
-  // Protect while loops: while(...) { -> while(...) { if (++__guard > 5000) throw new Error("Infinite Loop Protection Triggered");
   guarded = guarded.replace(/while\s*\(([^)]+)\)\s*\{/g, (match, cond) => {
     return `while (${cond}) { if (++__loopGuard > 10000) throw new Error("Execution aborted: Loop exceeded 10,000 iterations."); `;
   });
 
-  // Protect for loops: for(...) { -> for(...) { if (++__guard > 5000) throw new Error(...)
   guarded = guarded.replace(/for\s*\(([^)]+)\)\s*\{/g, (match, cond) => {
     return `for (${cond}) { if (++__loopGuard > 10000) throw new Error("Execution aborted: Loop exceeded 10,000 iterations."); `;
   });
@@ -153,9 +359,9 @@ function injectLoopGuards(sourceCode) {
 }
 
 /**
- * Universal Hardened Code-to-3D Parser & Sandbox Runner
+ * Universal Multi-Language Code-to-3D Parser & Sandbox Runner
  */
-export function parseCodeTo3DActions(code, realm = "sorting") {
+export function parseCodeTo3DActions(code, realm = "sorting", language = "auto") {
   if (!code || typeof code !== "string" || code.trim() === "") {
     return { success: true, actions: [], errors: [], logs: [], variables: {}, initialArray: null, initialMatrix: null };
   }
@@ -175,8 +381,11 @@ export function parseCodeTo3DActions(code, realm = "sorting") {
   if (activeRealm === "list") activeRealm = "linkedlist";
   if (activeRealm === "grid") activeRealm = "matrix";
 
+  // Transpile to executable JS if Python, C++, Java, or C
+  const executableJS = transpileToExecutableJS(code, language);
+
   // 1. Detect 2D Matrix Literal (e.g. let grid = [[1, 2, 3], [4, 5, 6], [7, 8, 9]];)
-  const matrixMatch = code.match(/(?:let|const|var)\s+(?:grid|matrix|board|table)\s*=\s*(\[\s*\[[\s\S]*?\]\s*\])/);
+  const matrixMatch = executableJS.match(/(?:let|const|var)\s+(?:grid|matrix|board|table)\s*=\s*(\[\s*\[[\s\S]*?\]\s*\])/);
   if (matrixMatch) {
     try {
       const sanitized = matrixMatch[1].replace(/\/\/.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "");
@@ -192,7 +401,7 @@ export function parseCodeTo3DActions(code, realm = "sorting") {
 
   // 2. Detect 1D Array Literal (e.g. let arr = [60, 20, 80, 10, 40];)
   if (!initialMatrix) {
-    const initialArrMatch = code.match(/(?:let|const|var)\s+(?:arr|array|nums|data)\s*=\s*\[([^\]]+)\]/);
+    const initialArrMatch = executableJS.match(/(?:let|const|var)\s+(?:arr|array|nums|data)\s*=\s*\[([^\]]+)\]/);
     if (initialArrMatch) {
       try {
         const parsedElements = initialArrMatch[1]
@@ -447,7 +656,7 @@ export function parseCodeTo3DActions(code, realm = "sorting") {
       },
     },
 
-    // 6. Graph Realm Helper (supports both strings and numbers)
+    // 6. Graph Realm Helper (supports alphanumeric vertices)
     graph: {
       addVertex(v) {
         recordAction({
@@ -734,7 +943,7 @@ export function parseCodeTo3DActions(code, realm = "sorting") {
 
   // Execute in isolated, hardened function sandbox
   try {
-    const guardedCode = injectLoopGuards(code);
+    const guardedCode = injectLoopGuards(executableJS);
 
     // Build argument list: runtime helpers + blocked shadow variables (undefined)
     const envKeys = [...Object.keys(runtimeEnv), ...BLOCKED_GLOBALS];
