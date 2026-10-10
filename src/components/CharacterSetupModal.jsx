@@ -1,13 +1,11 @@
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   Check,
   Shield,
   Zap,
   Cpu,
   Flame,
-  Globe,
-  Code2,
   Trophy,
   ArrowRight,
   User,

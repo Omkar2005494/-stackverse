@@ -6,7 +6,6 @@ import { OrbitControls, Text, RoundedBox, Stars } from "@react-three/drei";
 const ArrayPillar = React.memo(function ArrayPillar({
   value,
   index,
-  total,
   position,
   isComparing = false,
   isSwapping = false,

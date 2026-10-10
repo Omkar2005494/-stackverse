@@ -283,6 +283,7 @@ export function pythonToJavaScript(pyCode) {
     // Helper method translations
     line = line.replace(/graph\.add_vertex\(/g, "graph.addVertex(");
     line = line.replace(/graph\.add_edge\(/g, "graph.addEdge(");
+    line = line.replace(/graph\.shortest_path\(/g, "graph.shortestPath(");
     line = line.replace(/heap\.extract_root\(/g, "heap.extractRoot(");
     line = line.replace(/list\.insert_head\(/g, "list.insertHead(");
 
@@ -787,47 +788,155 @@ export function parseCodeTo3DActions(code, realm = "sorting", language = "auto")
     },
 
     // 6. Graph Realm Helper
-    graph: {
-      addVertex(v) {
-        recordAction({
-          type: "addVertex",
-          target: "graph",
-          arg: v,
-          raw: `graph.addVertex(${v})`,
-        });
-      },
-      addEdge(u, v) {
-        recordAction({
-          type: "addEdge",
-          target: "graph",
-          arg: [u, v],
-          raw: `graph.addEdge(${u}, ${v})`,
-        });
-      },
-      bfs(start = 0) {
-        recordAction({
-          type: "bfs",
-          target: "graph",
-          arg: start,
-          raw: `graph.bfs(${start})`,
-        });
-      },
-      dfs(start = 0) {
-        recordAction({
-          type: "dfs",
-          target: "graph",
-          arg: start,
-          raw: `graph.dfs(${start})`,
-        });
-      },
-      clear() {
-        recordAction({
-          type: "clear",
-          target: "graph",
-          raw: `graph.clear()`,
-        });
-      },
-    },
+    graph: (() => {
+      const internalVertices = [];
+      const internalEdges = [];
+
+      return {
+        addVertex(v) {
+          const val = String(v);
+          if (!internalVertices.includes(val)) {
+            internalVertices.push(val);
+          }
+          recordAction({
+            type: "addVertex",
+            target: "graph",
+            arg: val,
+            raw: `graph.addVertex("${val}")`,
+          });
+        },
+        addEdge(u, v) {
+          const from = String(u);
+          const to = String(v);
+          internalEdges.push([from, to]);
+          recordAction({
+            type: "addEdge",
+            target: "graph",
+            arg: [from, to],
+            raw: `graph.addEdge("${from}", "${to}")`,
+          });
+        },
+        bfs(startNode) {
+          const start = startNode !== undefined ? String(startNode) : internalVertices[0] || "A";
+          recordAction({
+            type: "bfs",
+            target: "graph",
+            arg: start,
+            raw: `graph.bfs("${start}")`,
+          });
+
+          // Compute BFS steps
+          const visited = new Set();
+          const queue = [start];
+          let step = 0;
+
+          while (queue.length > 0) {
+            const curr = queue.shift();
+            if (visited.has(curr)) continue;
+            visited.add(curr);
+            recordAction({
+              type: "visitNode",
+              target: "graph",
+              arg: curr,
+              step: step++,
+              raw: `BFS visit node '${curr}'`,
+            });
+
+            internalEdges.forEach(([u, v]) => {
+              const nbr = u === curr ? v : v === curr ? u : null;
+              if (nbr && !visited.has(nbr)) {
+                queue.push(nbr);
+              }
+            });
+          }
+        },
+        dfs(startNode) {
+          const start = startNode !== undefined ? String(startNode) : internalVertices[0] || "A";
+          recordAction({
+            type: "dfs",
+            target: "graph",
+            arg: start,
+            raw: `graph.dfs("${start}")`,
+          });
+
+          const visited = new Set();
+          let step = 0;
+
+          const traverse = (curr) => {
+            if (visited.has(curr)) return;
+            visited.add(curr);
+            recordAction({
+              type: "visitNode",
+              target: "graph",
+              arg: curr,
+              step: step++,
+              raw: `DFS visit node '${curr}'`,
+            });
+
+            internalEdges.forEach(([u, v]) => {
+              const nbr = u === curr ? v : v === curr ? u : null;
+              if (nbr && !visited.has(nbr)) {
+                traverse(nbr);
+              }
+            });
+          };
+
+          traverse(start);
+        },
+        shortestPath(startNode, endNode) {
+          const start = String(startNode);
+          const end = String(endNode);
+          const queue = [[start]];
+          const visited = new Set([start]);
+          let foundPath = [];
+
+          while (queue.length > 0) {
+            const path = queue.shift();
+            const curr = path[path.length - 1];
+            if (curr === end) {
+              foundPath = path;
+              break;
+            }
+            internalEdges.forEach(([u, v]) => {
+              const nbr = u === curr ? v : v === curr ? u : null;
+              if (nbr && !visited.has(nbr)) {
+                visited.add(nbr);
+                queue.push([...path, nbr]);
+              }
+            });
+          }
+
+          recordAction({
+            type: "shortestPath",
+            target: "graph",
+            arg: foundPath,
+            raw: `graph.shortestPath("${start}", "${end}")`,
+          });
+
+          foundPath.forEach((node, idx) => {
+            recordAction({
+              type: "visitNode",
+              target: "graph",
+              arg: node,
+              step: idx,
+              raw: `Path node [${idx}]: '${node}'`,
+            });
+          });
+        },
+        findShortestPath(start, end) {
+          this.shortestPath(start, end);
+        },
+        clear() {
+          internalVertices.length = 0;
+          internalEdges.length = 0;
+          recordAction({
+            type: "clear",
+            target: "graph",
+            raw: `graph.clear()`,
+          });
+        },
+      };
+    })(),
 
     // 7. Heap Realm Helper
     heap: {
@@ -927,7 +1036,7 @@ export function parseCodeTo3DActions(code, realm = "sorting", language = "auto")
     // Console output interceptor (detects matrix visited coordinates)
     console: {
       log(...args) {
-        let msg = "";
+        let msg;
         if (typeof args[0] === "string" && (args[0].includes("%d") || args[0].includes("%s") || args[0].includes("%f"))) {
           let str = args[0];
           let argIdx = 1;

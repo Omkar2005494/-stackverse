@@ -1,6 +1,6 @@
 import React, { useRef } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { OrbitControls, Text, RoundedBox, Grid, Float } from "@react-three/drei";
+import { OrbitControls, Text, RoundedBox, Grid } from "@react-three/drei";
 
 // Single 3D Matrix Cell / Cube
 const MatrixCell = React.memo(function MatrixCell({

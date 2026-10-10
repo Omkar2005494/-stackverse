@@ -17,7 +17,7 @@ const GraphNode = React.memo(function GraphNode({
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
     if (groupRef.current) {
-      // Floating hover loop
+      // Gentle floating hover loop
       groupRef.current.position.y = position[1] + Math.sin(t * 2.5 + index * 0.9) * 0.08;
     }
     if (haloRef.current) {
@@ -36,8 +36,8 @@ const GraphNode = React.memo(function GraphNode({
       {isSpecial && (
         <group ref={haloRef}>
           <mesh rotation={[-Math.PI / 4, 0, 0]}>
-            <ringGeometry args={[0.85, 1.0, 32]} />
-            <meshBasicMaterial color={wireColor} transparent opacity={0.85} side={2} />
+            <ringGeometry args={[0.85, 1.05, 32]} />
+            <meshBasicMaterial color={wireColor} transparent opacity={0.85} side={THREE.DoubleSide} />
           </mesh>
         </group>
       )}
@@ -56,12 +56,12 @@ const GraphNode = React.memo(function GraphNode({
 
       {/* Outer Wireframe Energy Shell */}
       <mesh>
-        <sphereGeometry args={[0.63, 16, 16]} />
+        <sphereGeometry args={[0.64, 16, 16]} />
         <meshBasicMaterial
           color={wireColor}
           wireframe
           transparent
-          opacity={isSpecial ? 0.65 : 0.25}
+          opacity={isSpecial ? 0.75 : 0.25}
         />
       </mesh>
 
@@ -83,34 +83,51 @@ const GraphNode = React.memo(function GraphNode({
   );
 });
 
-// --- 2. Holographic Laser Edge with Photon Pulse Runner ---
+// --- 2. Holographic Laser Edge with True 3D Quaternion & Photon Pulse ---
 const Edge = React.memo(function Edge({
   start,
   end,
+  from,
+  to,
   isHighlighted = false,
   isPathEdge = false,
+  shortestPath = [],
 }) {
   const pulseRef = useRef();
 
-  const startVec = useMemo(() => new THREE.Vector3(...start), [start]);
-  const endVec = useMemo(() => new THREE.Vector3(...end), [end]);
-  const dx = end[0] - start[0];
-  const dy = end[1] - start[1];
-  const dz = (end[2] || 0) - (start[2] || 0);
-  const length = Math.sqrt(dx * dx + dy * dy + dz * dz);
-  const angleZ = Math.atan2(dx, dy);
+  // True 3D alignment using Quaternion
+  const { mid, length, quaternion, p1, p2 } = useMemo(() => {
+    const v1 = new THREE.Vector3(start[0], start[1], start[2] || 0);
+    const v2 = new THREE.Vector3(end[0], end[1], end[2] || 0);
+    const midPoint = new THREE.Vector3().addVectors(v1, v2).multiplyScalar(0.5);
+    const dir = new THREE.Vector3().subVectors(v2, v1);
+    const len = dir.length();
+    const up = new THREE.Vector3(0, 1, 0);
+    const quat = new THREE.Quaternion();
+    if (len > 0.0001) {
+      quat.setFromUnitVectors(up, dir.clone().normalize());
+    }
+    return { mid: midPoint, length: len, quaternion: quat, p1: v1, p2: v2 };
+  }, [start, end]);
 
-  const mid = [
-    (start[0] + end[0]) / 2,
-    (start[1] + end[1]) / 2,
-    (start[2] || 0) + (end[2] || 0) / 2,
-  ];
+  // Determine direction of photon packet travel along the shortest path
+  const isForward = useMemo(() => {
+    if (!isPathEdge || !Array.isArray(shortestPath) || shortestPath.length < 2) return true;
+    for (let i = 0; i < shortestPath.length - 1; i++) {
+      if (shortestPath[i] === from && shortestPath[i + 1] === to) return true;
+      if (shortestPath[i] === to && shortestPath[i + 1] === from) return false;
+    }
+    return true;
+  }, [isPathEdge, shortestPath, from, to]);
+
+  const travelStart = isForward ? p1 : p2;
+  const travelEnd = isForward ? p2 : p1;
 
   // Animate photon packet traveling along the shortest path
   useFrame((state) => {
     if (pulseRef.current && isPathEdge) {
-      const t = (state.clock.getElapsedTime() * 1.5) % 1;
-      const cur = new THREE.Vector3().lerpVectors(startVec, endVec, t);
+      const t = (state.clock.getElapsedTime() * 1.6) % 1;
+      const cur = new THREE.Vector3().lerpVectors(travelStart, travelEnd, t);
       pulseRef.current.position.set(cur.x, cur.y, cur.z);
     }
   });
@@ -120,10 +137,10 @@ const Edge = React.memo(function Edge({
 
   return (
     <>
-      {/* Cylindrical Laser Beam */}
-      <group position={mid} rotation={[0, 0, -angleZ]}>
+      {/* Cylindrical Laser Beam Oriented via 3D Quaternion */}
+      <group position={mid} quaternion={quaternion}>
         <mesh scale={isPathEdge ? [1.6, 1, 1.6] : isHighlighted ? [1.3, 1, 1.3] : [1, 1, 1]}>
-          <cylinderGeometry args={[0.06, 0.06, length, 12]} />
+          <cylinderGeometry args={[0.06, 0.06, Math.max(0.01, length), 12]} />
           <meshStandardMaterial
             color={edgeColor}
             emissive={emissiveColor}
@@ -135,11 +152,11 @@ const Edge = React.memo(function Edge({
 
         {/* Outer Glow Sleeve */}
         <mesh scale={isPathEdge ? [2.0, 1, 2.0] : [1.3, 1, 1.3]}>
-          <cylinderGeometry args={[0.08, 0.08, length, 8]} />
+          <cylinderGeometry args={[0.08, 0.08, Math.max(0.01, length), 8]} />
           <meshBasicMaterial
             color={edgeColor}
             transparent
-            opacity={isPathEdge ? 0.45 : 0.15}
+            opacity={isPathEdge ? 0.45 : 0.18}
           />
         </mesh>
       </group>
@@ -147,7 +164,7 @@ const Edge = React.memo(function Edge({
       {/* Traveling Photon Energy Orb on Shortest Path */}
       {isPathEdge && (
         <mesh ref={pulseRef}>
-          <sphereGeometry args={[0.18, 16, 16]} />
+          <sphereGeometry args={[0.2, 16, 16]} />
           <meshBasicMaterial color="#ffffff" />
         </mesh>
       )}
@@ -155,95 +172,127 @@ const Edge = React.memo(function Edge({
   );
 });
 
-// --- Main World Component ---
+// --- 3. Clean Hierarchical BFS Graph Layout ---
+function computeGraphLayout(nodes = [], edges = []) {
+  if (!Array.isArray(nodes) || nodes.length === 0) return [];
 
+  // Single node
+  if (nodes.length === 1) {
+    return [{ value: nodes[0], position: [0, 3.2, 0] }];
+  }
+
+  if (edges.length === 0) {
+    const spacing = 3;
+    return nodes.map((value, index) => ({
+      value,
+      position: [
+        Number(((index - (nodes.length - 1) / 2) * spacing).toFixed(3)),
+        1.5,
+        0,
+      ],
+    }));
+  }
+
+  const root = nodes[0];
+  const adjacency = {};
+  nodes.forEach((n) => {
+    adjacency[n] = [];
+  });
+  edges.forEach(([u, v]) => {
+    if (adjacency[u]) adjacency[u].push(v);
+    if (adjacency[v]) adjacency[v].push(u);
+  });
+
+  const levels = [[root]];
+  const visited = new Set([root]);
+  const queue = [{ node: root, level: 0 }];
+
+  while (queue.length > 0) {
+    const { node, level } = queue.shift();
+
+    (adjacency[node] || []).forEach((neighbor) => {
+      if (!visited.has(neighbor)) {
+        visited.add(neighbor);
+
+        if (!levels[level + 1]) {
+          levels[level + 1] = [];
+        }
+
+        levels[level + 1].push(neighbor);
+        queue.push({ node: neighbor, level: level + 1 });
+      }
+    });
+  }
+
+  // Include any unvisited / disconnected nodes on an extra level
+  const unvisited = nodes.filter((n) => !visited.has(n));
+  if (unvisited.length > 0) {
+    levels.push(unvisited);
+  }
+
+  const positionMap = {};
+  const spacing = 4.8;
+
+  levels.forEach((levelNodes, levelIndex) => {
+    const totalWidth = (levelNodes.length - 1) * spacing;
+
+    levelNodes.forEach((node, index) => {
+      positionMap[node] = [
+        Number((index * spacing - totalWidth / 2).toFixed(3)),
+        Number((3.2 - levelIndex * 2.2).toFixed(3)),
+        0,
+      ];
+    });
+  });
+
+  // Fallback for safety
+  nodes.forEach((node, idx) => {
+    if (!positionMap[node]) {
+      positionMap[node] = [
+        Number(((idx - (nodes.length - 1) / 2) * 3).toFixed(3)),
+        -4,
+        0,
+      ];
+    }
+  });
+
+  return nodes.map((value) => ({
+    value,
+    position: positionMap[value],
+  }));
+}
+
+// --- Main World Component ---
 export default function GraphWorld({
-  nodes = ["A", "B", "C", "D"],
+  nodes = ["A", "B", "C", "D", "E"],
   edges = [
     ["A", "B"],
     ["A", "C"],
     ["B", "D"],
+    ["C", "E"],
   ],
   shortestPath = [],
-  highlightedNode,
+  highlightedNode = null,
 }) {
+  const safeNodes = useMemo(() => (Array.isArray(nodes) ? nodes : []), [nodes]);
+  const safeEdges = useMemo(() => (Array.isArray(edges) ? edges : []), [edges]);
+
   const graphLayout = useMemo(() => {
-    if (nodes.length === 0) return [];
-
-    if (edges.length === 0) {
-      const spacing = 3.2;
-      return nodes.map((value, index) => ({
-        value,
-        position: [
-          (index - (nodes.length - 1) / 2) * spacing,
-          1.8,
-          0,
-        ],
-      }));
-    }
-
-    const root = nodes[0];
-    const adjacency = {};
-    nodes.forEach((node) => {
-      adjacency[node] = [];
-    });
-
-    edges.forEach(([from, to]) => {
-      if (adjacency[from]) adjacency[from].push(to);
-      if (adjacency[to]) adjacency[to].push(from);
-    });
-
-    const levels = [[root]];
-    const visited = new Set([root]);
-    const queue = [{ node: root, level: 0 }];
-
-    while (queue.length) {
-      const { node, level } = queue.shift();
-      (adjacency[node] || []).forEach((neighbor) => {
-        if (!visited.has(neighbor)) {
-          visited.add(neighbor);
-          if (!levels[level + 1]) {
-            levels[level + 1] = [];
-          }
-          levels[level + 1].push(neighbor);
-          queue.push({ node: neighbor, level: level + 1 });
-        }
-      });
-    }
-
-    const positionMap = {};
-    levels.forEach((levelNodes, levelIndex) => {
-      const spacing = 4.2;
-      const totalWidth = (levelNodes.length - 1) * spacing;
-      levelNodes.forEach((node, index) => {
-        positionMap[node] = [
-          index * spacing - totalWidth / 2,
-          4.5 - levelIndex * 2.6,
-          0,
-        ];
-      });
-    });
-
-    nodes.forEach((node) => {
-      if (!positionMap[node]) {
-        positionMap[node] = [0, -3.5, 0];
-      }
-    });
-
-    return nodes.map((value) => ({
-      value,
-      position: positionMap[value],
-    }));
-  }, [nodes, edges]);
+    return computeGraphLayout(safeNodes, safeEdges);
+  }, [safeNodes, safeEdges]);
 
   const nodePositions = useMemo(() => {
-    return Object.fromEntries(
-      graphLayout.map((node) => [node.value, node.position])
-    );
+    const map = {};
+    graphLayout.forEach((node) => {
+      map[node.value] = node.position;
+      // Also map string representation if numbers are passed
+      map[String(node.value)] = node.position;
+    });
+    return map;
   }, [graphLayout]);
 
   const isEdgeInShortestPath = (from, to) => {
-    if (!shortestPath || shortestPath.length < 2) return false;
+    if (!Array.isArray(shortestPath) || shortestPath.length < 2) return false;
     for (let i = 0; i < shortestPath.length - 1; i++) {
       const u = shortestPath[i];
       const v = shortestPath[i + 1];
@@ -254,12 +303,31 @@ export default function GraphWorld({
     return false;
   };
 
+  // Resilient check for highlight supporting string or number
+  const isNodeHighlighted = (val, idx) => {
+    if (highlightedNode === null || highlightedNode === undefined) return false;
+    if (highlightedNode === val || highlightedNode === idx) return true;
+    if (typeof highlightedNode === "number" && safeNodes[highlightedNode] === val) return true;
+    if (typeof highlightedNode === "string" && safeNodes.indexOf(highlightedNode) === idx) return true;
+    return false;
+  };
+
+  const isEdgeHighlighted = (from, to) => {
+    if (highlightedNode === null || highlightedNode === undefined) return false;
+    if (from === highlightedNode || to === highlightedNode) return true;
+    if (typeof highlightedNode === "number") {
+      const activeVal = safeNodes[highlightedNode];
+      return activeVal === from || activeVal === to;
+    }
+    return false;
+  };
+
   return (
     <Canvas
       dpr={[1, 1.5]}
       gl={{ powerPreference: "high-performance", antialias: true, alpha: true }}
       performance={{ min: 0.8 }}
-      camera={{ position: [0, 2.5, 18], fov: 54 }}
+      camera={{ position: [0, 2.5, 18], fov: 52 }}
       style={{
         width: "100%",
         height: "100%",
@@ -298,23 +366,24 @@ export default function GraphWorld({
       />
 
       {/* Holographic Laser Edges */}
-      {edges.map(([from, to], index) => {
+      {safeEdges.map(([from, to], index) => {
         const start = nodePositions[from];
         const end = nodePositions[to];
         if (!start || !end) return null;
 
         const isPathEdge = isEdgeInShortestPath(from, to);
-        const isHighlighted =
-          highlightedNode !== null &&
-          (nodes.indexOf(from) === highlightedNode || nodes.indexOf(to) === highlightedNode);
+        const isHighlighted = isEdgeHighlighted(from, to);
 
         return (
           <Edge
             key={`edge-${from}-${to}-${index}`}
             start={start}
             end={end}
+            from={from}
+            to={to}
             isHighlighted={isHighlighted}
             isPathEdge={isPathEdge}
+            shortestPath={shortestPath}
           />
         );
       })}
@@ -322,7 +391,7 @@ export default function GraphWorld({
       {/* Amethyst Crystal Vertices */}
       {graphLayout.map((node, index) => {
         const isInPath = Array.isArray(shortestPath) && shortestPath.includes(node.value);
-        const isHighlighted = highlightedNode === index || highlightedNode === node.value;
+        const isHighlighted = isNodeHighlighted(node.value, index);
 
         return (
           <GraphNode
@@ -336,14 +405,12 @@ export default function GraphWorld({
         );
       })}
 
-
-
       <OrbitControls
         enablePan={true}
-        minDistance={8}
-        maxDistance={38}
-        minPolarAngle={Math.PI / 4}
-        maxPolarAngle={Math.PI / 1.95}
+        minDistance={6}
+        maxDistance={45}
+        minPolarAngle={0.1}
+        maxPolarAngle={Math.PI * 0.95}
         enableDamping
         dampingFactor={0.08}
       />

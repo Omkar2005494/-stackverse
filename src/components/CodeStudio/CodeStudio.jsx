@@ -1011,6 +1011,7 @@ export default function CodeStudio() {
   const [graphNodes, setGraphNodes] = useState([]);
   const [graphEdges, setGraphEdges] = useState([]);
   const [graphHighlight, setGraphHighlight] = useState(null);
+  const [graphShortestPath, setGraphShortestPath] = useState([]);
   const [heapData, setHeapData] = useState([]);
 
   const isPlayingRef = useRef(false);
@@ -1189,15 +1190,25 @@ export default function CodeStudio() {
           const [u, v] = action.arg;
           soundFX.playPush();
           setGraphEdges((prev) => [...prev, [u, v]]);
+        } else if (action.type === "visitNode" || action.type === "highlight") {
+          const node = action.arg;
+          const stepNum = typeof action.step === "number" ? action.step : 0;
+          soundFX.playTreeStep(stepNum);
+          setGraphHighlight(node);
         } else if (action.type === "bfs" || action.type === "dfs") {
           const start = action.arg;
           soundFX.playTreeStep(0);
           setGraphHighlight(start);
-          setTimeout(() => setGraphHighlight(null), 1200);
+        } else if (action.type === "shortestPath") {
+          const path = action.arg;
+          soundFX.playTreeFound();
+          setGraphShortestPath(Array.isArray(path) ? path : []);
         } else if (action.type === "clear") {
           soundFX.playClear();
           setGraphNodes([]);
           setGraphEdges([]);
+          setGraphHighlight(null);
+          setGraphShortestPath([]);
         }
       }
       // 7. Heap
@@ -1281,6 +1292,7 @@ export default function CodeStudio() {
     setGraphNodes([]);
     setGraphEdges([]);
     setGraphHighlight(null);
+    setGraphShortestPath([]);
     setHeapData([]);
   }, []);
 
@@ -1471,6 +1483,7 @@ export default function CodeStudio() {
       setGraphNodes([]);
       setGraphEdges([]);
       setGraphHighlight(null);
+      setGraphShortestPath([]);
     } else if (tmpl.realm === "stack") {
       setStackData([]);
     } else if (tmpl.realm === "queue") {
@@ -2105,6 +2118,7 @@ export default function CodeStudio() {
           <GraphWorld
             nodes={graphNodes}
             edges={graphEdges}
+            shortestPath={graphShortestPath}
             highlightedNode={graphHighlight}
           />
         )}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { signOut } from "firebase/auth";
 import { auth } from "./firebase/firebase";
 import MobileApp from "./mobile/MobileApp";
@@ -105,6 +105,7 @@ export default function App() {
     startGraphDFS,
     findShortestPath,
   } = useGraphLogic();
+  const graphTraversalIdRef = useRef(0);
   const {
     heap,
     heapInsertCount,
@@ -273,6 +274,7 @@ export default function App() {
 
   // Clear traversal result and highlighted node when switching worlds
   useEffect(() => {
+    graphTraversalIdRef.current++;
     setTraversalResult("");
     setHighlightedNode(null);
   }, [currentWorld]);
@@ -517,6 +519,7 @@ export default function App() {
   };
 
   const handleGraphBFS = async () => {
+    const currentId = ++graphTraversalIdRef.current;
     const result = startGraphBFS();
 
     if (!result.length) return;
@@ -525,11 +528,11 @@ export default function App() {
     setTimeComplexity("O(V + E)");
     setSpaceComplexity("O(V)");
     setActualSteps(result.length);
-
     setTraversalResult(`GRAPH BFS: ${result.join(" → ")}`);
     setBfsCount((prev) => prev + 1);
 
     for (let i = 0; i < result.length; i++) {
+      if (graphTraversalIdRef.current !== currentId) return;
       const node = result[i];
       const index = graphNodes.indexOf(node);
       setHighlightedNode(index);
@@ -537,10 +540,13 @@ export default function App() {
       await new Promise((resolve) => setTimeout(resolve, 500));
     }
 
-    setHighlightedNode(null);
+    if (graphTraversalIdRef.current === currentId) {
+      setHighlightedNode(null);
+    }
   };
 
   const handleGraphDFS = async () => {
+    const currentId = ++graphTraversalIdRef.current;
     const result = startGraphDFS();
 
     if (!result.length) return;
@@ -549,11 +555,11 @@ export default function App() {
     setTimeComplexity("O(V + E)");
     setSpaceComplexity("O(V)");
     setActualSteps(result.length);
-
     setTraversalResult(`GRAPH DFS: ${result.join(" → ")}`);
     setDfsCount((prev) => prev + 1);
 
     for (let i = 0; i < result.length; i++) {
+      if (graphTraversalIdRef.current !== currentId) return;
       const node = result[i];
       const index = graphNodes.indexOf(node);
       setHighlightedNode(index);
@@ -561,14 +567,17 @@ export default function App() {
       await new Promise((resolve) => setTimeout(resolve, 500));
     }
 
-    setHighlightedNode(null);
+    if (graphTraversalIdRef.current === currentId) {
+      setHighlightedNode(null);
+    }
   };
 
   const handleShortestPath = async () => {
+    const currentId = ++graphTraversalIdRef.current;
     const path = findShortestPath();
 
     if (!path.length) {
-      setTraversalResult("NO PATH FOUND");
+      setTraversalResult("NO PATH FOUND (DISCONNECTED)");
       return;
     }
 
@@ -576,10 +585,10 @@ export default function App() {
     setTimeComplexity("O((V + E) log V)");
     setSpaceComplexity("O(V)");
     setActualSteps(path.length);
-
     setTraversalResult(`PATH: ${path.join(" → ")}`);
 
     for (let i = 0; i < path.length; i++) {
+      if (graphTraversalIdRef.current !== currentId) return;
       const node = path[i];
       const index = graphNodes.indexOf(node);
       setHighlightedNode(index);
@@ -587,6 +596,15 @@ export default function App() {
       await new Promise((resolve) => setTimeout(resolve, 450));
     }
 
+    if (graphTraversalIdRef.current === currentId) {
+      setHighlightedNode(null);
+    }
+  };
+
+  const handleResetGraph = () => {
+    graphTraversalIdRef.current++;
+    resetGraph();
+    setTraversalResult("");
     setHighlightedNode(null);
   };
 
@@ -914,12 +932,23 @@ export default function App() {
           />
         </div>
       ) : currentWorld === "graph" ? (
-        <GraphWorld
-          nodes={graphNodes}
-          edges={graphEdges}
-          shortestPath={shortestPath}
-          highlightedNode={highlightedNode}
-        />
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            zIndex: 1,
+            overflow: 'hidden',
+          }}
+        >
+          <GraphWorld
+            nodes={graphNodes}
+            edges={graphEdges}
+            shortestPath={shortestPath}
+            highlightedNode={highlightedNode}
+          />
+        </div>
       ) : currentWorld === "linkedlist" ? (
         <LinkedListWorld 
           addXP={addXP} 
@@ -1287,7 +1316,7 @@ export default function App() {
                         style={{ flex: 1, background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", padding: "10px 14px", color: "white", outline: "none", fontSize: "14px" }} 
                       />
                       <button
-                        onClick={addEdge}
+                        onClick={() => addEdge()}
                         style={{
                           background: "linear-gradient(135deg, #6366f1, #4f46e5)",
                           border: "none",
@@ -1335,12 +1364,12 @@ export default function App() {
                 }
                 secondaryActions={[
                   { label: "DEL VERTEX", onClick: (val) => deleteVertex(val), isDanger: true },
-                  { label: "ADD EDGE", onClick: addEdge },
-                  { label: "DEL EDGE", onClick: deleteEdge, isDanger: true },
+                  { label: "ADD EDGE", onClick: (val) => addEdge(val) },
+                  { label: "DEL EDGE", onClick: (val) => deleteEdge(val), isDanger: true },
                   { label: "GRAPH BFS", onClick: handleGraphBFS },
                   { label: "GRAPH DFS", onClick: handleGraphDFS },
                   { label: "SHORTEST", onClick: handleShortestPath, color: "#22c55e" },
-                  { label: "RESET", onClick: resetGraph, isDanger: true }
+                  { label: "RESET", onClick: handleResetGraph, isDanger: true }
                 ]}
               />
               {traversalResult && (
